@@ -45,11 +45,18 @@ const userSchema = new Schema(
       type: [{ type: Schema.Types.ObjectId, ref: "Property" }],
       default: [],
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+userSchema.index({ role: 1 });
+userSchema.index({ isBlocked: 1 });
 
 // Prevent compiling model multiple times
 const User = mongoose.models.User || mongoose.model("User", userSchema);

@@ -1,0 +1,154 @@
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import Destination from "@/models/Destination";
+import User from "@/models/User";
+import { ApiResponse } from "@/lib/api-response";
+import { UnauthorizedError, ForbiddenError, ValidationError, NotFoundError } from "@/lib/errors";
+import { verifyAccessToken } from "@/lib/jwt";
+import { uploadToCloudinary } from "@/lib/cloudinary";
+import { cookies } from "next/headers";
+import mongoose from "mongoose";
+
+async function verifyAdmin() {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get("accessToken")?.value;
+
+  if (!accessToken) {
+    throw new UnauthorizedError("Please login to perform this action");
+  }
+
+  const decoded = verifyAccessToken(accessToken);
+  if (!decoded) {
+    throw new UnauthorizedError("Session expired. Please log in again");
+  }
+
+  if (decoded.role !== "admin") {
+    throw new ForbiddenError("Access restricted to administrators only");
+  }
+
+  const user = await User.findById(decoded.id);
+  if (!user || user.isBlocked) {
+    throw new ForbiddenError("Your account has been suspended or does not exist");
+  }
+
+  return user;
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    await connectToDatabase();
+    await verifyAdmin();
+
+    const destinations = await Destination.find().sort({ createdAt: -1 });
+    return ApiResponse.success(destinations);
+  } catch (error) {
+    return ApiResponse.error(error);
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    await connectToDatabase();
+    await verifyAdmin();
+
+    const body = await req.json();
+    const { name, description, image, isFeatured } = body;
+
+    if (!name || !description || !image) {
+      throw new ValidationError("Missing required destination details");
+    }
+
+    let finalImageUrl = image;
+    if (image.startsWith("data:image/")) {
+      const uploadRes = await uploadToCloudinary(image, "destinations");
+      if (uploadRes) {
+        finalImageUrl = uploadRes.secure_url;
+      } else {
+        throw new ValidationError("Failed to upload destination image to Cloudinary");
+      }
+    }
+
+    const newDest = new Destination({
+      name,
+      description,
+      image: finalImageUrl,
+      isFeatured: !!isFeatured,
+    });
+
+    await newDest.save();
+    return ApiResponse.success(newDest, "Destination created successfully");
+  } catch (error) {
+    return ApiResponse.error(error);
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    await connectToDatabase();
+    await verifyAdmin();
+
+    const body = await req.json();
+    const { id, name, description, image, isFeatured } = body;
+
+    if (!id || !mongoose.isValidObjectId(id)) {
+      throw new ValidationError("Invalid Destination ID");
+    }
+
+    const dest = await Destination.findById(id);
+    if (!dest) {
+      throw new NotFoundError("Destination not found");
+    }
+
+    if (name !== undefined) {
+      dest.name = name;
+      dest.slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "");
+    }
+    if (description !== undefined) dest.description = description;
+    if (isFeatured !== undefined) dest.isFeatured = !!isFeatured;
+
+    if (image !== undefined) {
+      let finalImageUrl = image;
+      if (image.startsWith("data:image/")) {
+        const uploadRes = await uploadToCloudinary(image, "destinations");
+        if (uploadRes) {
+          finalImageUrl = uploadRes.secure_url;
+        } else {
+          throw new ValidationError("Failed to upload destination image to Cloudinary");
+        }
+      }
+      dest.image = finalImageUrl;
+    }
+
+    await dest.save();
+    return ApiResponse.success(dest, "Destination updated successfully");
+  } catch (error) {
+    return ApiResponse.error(error);
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    await connectToDatabase();
+    await verifyAdmin();
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id || !mongoose.isValidObjectId(id)) {
+      throw new ValidationError("Invalid Destination ID");
+    }
+
+    const dest = await Destination.findById(id);
+    if (!dest) {
+      throw new NotFoundError("Destination not found");
+    }
+
+    await Destination.findByIdAndDelete(id);
+    return ApiResponse.success({ id }, "Destination deleted successfully");
+  } catch (error) {
+    return ApiResponse.error(error);
+  }
+}

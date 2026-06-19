@@ -104,6 +104,10 @@ propertySchema.pre("validate", function (next) {
   next();
 });
 
+propertySchema.index({ city: 1, status: 1 });
+propertySchema.index({ pricePerNight: 1 });
+propertySchema.index({ rating: -1 });
+
 const Property = mongoose.models.Property || mongoose.model("Property", propertySchema);
 
 export default Property;

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, User as UserIcon, LogOut, Shield, MapPin, Building, Key } from "lucide-react";
+import { Menu, X, User as UserIcon, LogOut, Shield, MapPin, Building, Key, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn, getInitials } from "@/lib/utils";
 import Button from "../ui/Button";
@@ -36,9 +36,11 @@ export const Navbar: React.FC = () => {
   }, [pathname]);
 
   const navLinks = [
-    { name: "Stays", href: "/" },
-    { name: "Destinations", href: "#" },
-    { name: "Services", href: "#" },
+    { name: "Home", href: "/" },
+    { name: "Stays", href: "/stays" },
+    { name: "Experiences", href: "/experiences" },
+    { name: "Destinations", href: "/destinations" },
+    { name: "About Us", href: "#" },
   ];
 
   return (
@@ -46,15 +48,18 @@ export const Navbar: React.FC = () => {
       className={cn(
         "fixed top-0 left-0 right-0 z-40 transition-all duration-500",
         isScrolled
-          ? "bg-emerald-deep/90 backdrop-blur-md border-b border-gold/15 py-3 shadow-lg"
+          ? "bg-emerald-deep/95 backdrop-blur-md border-b border-gold/15 py-3 shadow-lg"
           : "bg-transparent py-5"
       )}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <span className="font-display text-2xl font-bold tracking-[0.25em] text-gold group-hover:text-gold-light transition-colors">
-            STAYORA
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="h-9 w-9 rounded-full border border-gold/45 flex items-center justify-center bg-gold/5 shrink-0 group-hover:bg-gold/15 transition-all duration-300">
+            <span className="font-display text-gold text-lg font-bold italic tracking-tighter">S</span>
+          </div>
+          <span className="font-display text-2xl font-light text-luxury-cream tracking-wide group-hover:text-gold transition-colors ml-0.5">
+            Stay<span className="font-bold text-gold">ora</span>
           </span>
         </Link>
 
@@ -65,12 +70,12 @@ export const Navbar: React.FC = () => {
               key={link.name}
               href={link.href}
               className={cn(
-                "text-sm font-medium tracking-widest uppercase text-luxury-cream/80 hover:text-gold transition-colors duration-300 relative py-1",
-                pathname === link.href && "text-gold"
+                "text-xs font-semibold tracking-wider uppercase text-luxury-cream/80 hover:text-gold transition-colors duration-300 relative py-1",
+                (pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href))) && "text-gold"
               )}
             >
               {link.name}
-              {pathname === link.href && (
+              {(pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href))) && (
                 <motion.span
                   layoutId="activeNavBorder"
                   className="absolute bottom-0 left-0 right-0 h-[1px] bg-gold"
@@ -86,7 +91,7 @@ export const Navbar: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-3 focus:outline-none group"
+                className="flex items-center gap-3 focus:outline-none group animate-fade-in"
               >
                 <div className="h-10 w-10 rounded-full border border-gold/30 group-hover:border-gold bg-emerald-accent flex items-center justify-center text-gold font-bold transition-all text-sm overflow-hidden">
                   {user.avatar ? (
@@ -131,27 +136,27 @@ export const Navbar: React.FC = () => {
 
                       {user.role === "admin" && (
                         <Link
-                          href="#"
+                          href="/admin"
                           className="flex items-center gap-3 px-4 py-2 text-sm text-luxury-cream/80 hover:bg-emerald-accent hover:text-gold transition-colors"
                         >
-                          <Shield className="h-4 w-4" /> Admin Console
+                          <Shield className="h-4 w-4 text-gold" /> Admin Console
                         </Link>
                       )}
 
                       {(user.role === "agent" || user.role === "admin") && (
                         <Link
-                          href="#"
+                          href="/admin"
                           className="flex items-center gap-3 px-4 py-2 text-sm text-luxury-cream/80 hover:bg-emerald-accent hover:text-gold transition-colors"
                         >
-                          <Building className="h-4 w-4" /> Host Dashboard
+                          <Building className="h-4 w-4 text-gold" /> Host Dashboard
                         </Link>
                       )}
 
                       <Link
-                        href="#"
+                        href="/dashboard"
                         className="flex items-center gap-3 px-4 py-2 text-sm text-luxury-cream/80 hover:bg-emerald-accent hover:text-gold transition-colors"
                       >
-                        <Key className="h-4 w-4" /> Bookings
+                        <Key className="h-4 w-4 text-gold" /> Bookings & Wishlist
                       </Link>
 
                       <button
@@ -166,15 +171,10 @@ export const Navbar: React.FC = () => {
               </AnimatePresence>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center">
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-luxury-cream hover:text-gold">
+                <Button variant="outline" size="sm" className="border-gold/45 hover:bg-gold/10 text-luxury-cream text-xs px-6 h-9 tracking-wider uppercase font-semibold">
                   Login
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button variant="luxury" size="sm">
-                  Register
                 </Button>
               </Link>
             </div>
@@ -204,7 +204,7 @@ export const Navbar: React.FC = () => {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="text-sm font-medium uppercase tracking-widest text-luxury-cream/80 hover:text-gold transition-colors"
+                  className="text-xs font-bold uppercase tracking-wider text-luxury-cream/80 hover:text-gold transition-colors"
                 >
                   {link.name}
                 </Link>
@@ -234,18 +234,18 @@ export const Navbar: React.FC = () => {
                   </div>
 
                   {user.role === "admin" && (
-                    <Link href="#" className="text-sm text-luxury-cream/80 hover:text-gold">
+                    <Link href="/admin" className="text-xs uppercase tracking-wider font-semibold text-luxury-cream/80 hover:text-gold">
                       Admin Console
                     </Link>
                   )}
 
                   {(user.role === "agent" || user.role === "admin") && (
-                    <Link href="#" className="text-sm text-luxury-cream/80 hover:text-gold">
+                    <Link href="/admin" className="text-xs uppercase tracking-wider font-semibold text-luxury-cream/80 hover:text-gold">
                       Host Dashboard
                     </Link>
                   )}
 
-                  <Link href="#" className="text-sm text-luxury-cream/80 hover:text-gold">
+                  <Link href="/dashboard" className="text-xs uppercase tracking-wider font-semibold text-luxury-cream/80 hover:text-gold">
                     My Bookings
                   </Link>
 
@@ -262,12 +262,7 @@ export const Navbar: React.FC = () => {
                 <div className="flex flex-col gap-3">
                   <Link href="/login" className="w-full">
                     <Button variant="outline" size="sm" className="w-full">
-                      Login
-                    </Button>
-                  </Link>
-                  <Link href="/register" className="w-full">
-                    <Button variant="luxury" size="sm" className="w-full">
-                      Register
+                      Sign In
                     </Button>
                   </Link>
                 </div>

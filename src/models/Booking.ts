@@ -44,11 +44,23 @@ const bookingSchema = new Schema(
       type: String,
       default: "",
     },
+    upiTransactionId: {
+      type: String,
+      default: "",
+    },
+    upiReceiptScreenshot: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
   }
 );
+
+bookingSchema.index({ property: 1, status: 1 });
+bookingSchema.index({ checkIn: 1, checkOut: 1 });
+bookingSchema.index({ user: 1 });
 
 const Booking = mongoose.models.Booking || mongoose.model("Booking", bookingSchema);
 

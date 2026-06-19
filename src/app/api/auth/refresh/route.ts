@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
 import { ApiResponse } from "@/lib/api-response";
-import { UnauthorizedError } from "@/lib/errors";
+import { UnauthorizedError, ForbiddenError } from "@/lib/errors";
 import { verifyRefreshToken, setAuthCookies, clearAuthCookies } from "@/lib/jwt";
 import { cookies } from "next/headers";
 
@@ -32,6 +32,11 @@ export async function POST(req: NextRequest) {
       await User.updateOne({ _id: decoded.id }, { $set: { refreshTokens: [] } });
       await clearAuthCookies();
       throw new UnauthorizedError("Token theft detected. Please login again.");
+    }
+
+    if (user.isBlocked) {
+      await clearAuthCookies();
+      throw new ForbiddenError("Your account has been suspended by an administrator.");
     }
 
     // Rotate tokens

@@ -269,7 +269,9 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
               <p className="text-sm text-muted-foreground max-w-sm mb-6">
                 We couldn&apos;t find any properties matching your current filter criteria. Try resetting filters or choosing another destination.
               </p>
-              <Button variant="primary" onClick={clearFilters}>Reset Filters</Button>
+              <Link href="/stays">
+                <Button variant="primary">Reset Filters</Button>
+              </Link>
             </div>
           )}
 
@@ -310,8 +312,4 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
       <Footer />
     </div>
   );
-
-  function clearFilters() {
-    // Used in client event inline, server side handles simple links.
-  }
 }

@@ -4,7 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
 import { loginSchema } from "@/validations/auth";
 import { ApiResponse } from "@/lib/api-response";
-import { UnauthorizedError } from "@/lib/errors";
+import { UnauthorizedError, ForbiddenError } from "@/lib/errors";
 import { setAuthCookies } from "@/lib/jwt";
 
 export async function POST(req: NextRequest) {
@@ -19,6 +19,10 @@ export async function POST(req: NextRequest) {
     const user = await User.findOne({ email: parsedData.email });
     if (!user) {
       throw new UnauthorizedError("Invalid email or password");
+    }
+
+    if (user.isBlocked) {
+      return ApiResponse.error(new ForbiddenError("Your account has been suspended by an administrator."));
     }
 
     // Verify password

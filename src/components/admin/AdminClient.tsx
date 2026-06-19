@@ -1,0 +1,1712 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import {
+  LayoutDashboard,
+  Home,
+  Calendar,
+  Users,
+  Compass,
+  Plus,
+  Edit,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ExternalLink,
+  ChevronRight,
+  TrendingUp,
+  Award,
+  DollarSign,
+  Briefcase,
+  FileImage,
+  Upload,
+  UserX,
+  UserCheck,
+  Eye,
+  MapPin,
+  ListOrdered,
+  Layers,
+  Mail,
+  RefreshCw
+} from "lucide-react";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import Button from "../ui/Button";
+import Input from "../ui/Input";
+import Modal from "../ui/Modal";
+
+interface AdminClientProps {
+  initialProperties: any[];
+  initialBookings: any[];
+  initialUsers: any[];
+  initialDestinations: any[];
+  initialBanners: any[];
+  initialSubscribers: any[];
+}
+
+export const AdminClient: React.FC<AdminClientProps> = ({
+  initialProperties,
+  initialBookings,
+  initialUsers,
+  initialDestinations,
+  initialBanners,
+  initialSubscribers
+}) => {
+  const [activeTab, setActiveTab] = useState<"overview" | "properties" | "bookings" | "users" | "content">("overview");
+  const [contentSubTab, setContentSubTab] = useState<"destinations" | "banners" | "subscribers">("destinations");
+
+  // State arrays
+  const [properties, setProperties] = useState(initialProperties);
+  const [bookings, setBookings] = useState(initialBookings);
+  const [users, setUsers] = useState(initialUsers);
+  const [destinations, setDestinations] = useState(initialDestinations);
+  const [banners, setBanners] = useState(initialBanners);
+  const [subscribers, setSubscribers] = useState(initialSubscribers);
+
+  // Analytics states
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+
+  // Property modal states
+  const [isPropertyModalOpen, setIsPropertyModalOpen] = useState(false);
+  const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
+  const [propertyForm, setPropertyForm] = useState({
+    title: "",
+    description: "",
+    type: "villa",
+    status: "draft",
+    pricePerNight: "",
+    address: "",
+    city: "",
+    country: "",
+    amenities: "",
+    bedrooms: "1",
+    bathrooms: "1",
+    maxGuests: "2",
+    images: [] as string[]
+  });
+  const [propertyError, setPropertyError] = useState("");
+  const [isSavingProperty, setIsSavingProperty] = useState(false);
+
+  // Destination Form
+  const [isDestModalOpen, setIsDestModalOpen] = useState(false);
+  const [editingDestId, setEditingDestId] = useState<string | null>(null);
+  const [destForm, setDestForm] = useState({
+    name: "",
+    description: "",
+    image: "",
+    isFeatured: false
+  });
+  const [isSavingDest, setIsSavingDest] = useState(false);
+
+  // Banner Form
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+  const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
+  const [bannerForm, setBannerForm] = useState({
+    title: "",
+    subtitle: "",
+    image: "",
+    link: "/",
+    isActive: true,
+    order: "0"
+  });
+  const [isSavingBanner, setIsSavingBanner] = useState(false);
+
+  // Image zoom modal
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
+  // Fetch analytics data
+  const fetchAnalytics = async () => {
+    setIsLoadingAnalytics(true);
+    try {
+      const res = await fetch("/api/admin/analytics");
+      const body = await res.json();
+      if (body.success) {
+        setAnalytics(body.data);
+      }
+    } catch (err) {
+      console.error("Failed to load analytics:", err);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
+
+  // Update booking status helper
+  const handleUpdateBooking = async (bookingId: string, status?: string, paymentStatus?: string) => {
+    if (!confirm("Are you sure you want to update this booking's state?")) return;
+
+    try {
+      const res = await fetch("/api/admin/bookings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId, status, paymentStatus })
+      });
+      const body = await res.json();
+
+      if (body.success) {
+        setBookings((prev) =>
+          prev.map((b) => (b._id === bookingId ? { ...b, ...body.data } : b))
+        );
+        fetchAnalytics(); // reload stats
+        alert("Booking status updated successfully.");
+      } else {
+        alert(body.message || "Failed to update booking.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error updating booking.");
+    }
+  };
+
+  // Toggle user blocking status
+  const handleToggleUserBlock = async (userId: string, currentBlocked: boolean) => {
+    const targetStatus = !currentBlocked;
+    if (
+      !confirm(
+        `Are you sure you want to ${targetStatus ? "BLOCK" : "UNBLOCK"} this user? ${
+          targetStatus ? "They will be disconnected and unable to log in." : ""
+        }`
+      )
+    )
+      return;
+
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, isBlocked: targetStatus })
+      });
+      const body = await res.json();
+
+      if (body.success) {
+        setUsers((prev) =>
+          prev.map((u) => (u._id === userId ? { ...u, isBlocked: targetStatus } : u))
+        );
+        alert(`User successfully ${targetStatus ? "blocked" : "unblocked"}.`);
+      } else {
+        alert(body.message || "Failed to toggle user block status.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error updating user.");
+    }
+  };
+
+  // Delete property helper
+  const handleDeleteProperty = async (propertyId: string) => {
+    if (!confirm("Are you sure you want to delete this property? This cannot be undone.")) return;
+
+    try {
+      const res = await fetch(`/api/admin/properties/${propertyId}`, {
+        method: "DELETE"
+      });
+      const body = await res.json();
+
+      if (body.success) {
+        setProperties((prev) => prev.filter((p) => p._id !== propertyId));
+        fetchAnalytics();
+        alert("Property deleted successfully.");
+      } else {
+        alert(body.message || "Failed to delete property.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error deleting property.");
+    }
+  };
+
+  // Handle multi-image uploads as base64 strings
+  const handlePropertyImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const loadedImages: string[] = [];
+      let loadedCount = 0;
+
+      Array.from(files).forEach((file) => {
+        if (file.size > 4 * 1024 * 1024) {
+          alert("Each photo must be smaller than 4MB");
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          loadedImages.push(reader.result as string);
+          loadedCount++;
+          if (loadedCount === files.length) {
+            setPropertyForm((prev) => ({
+              ...prev,
+              images: [...prev.images, ...loadedImages]
+            }));
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  // Save property submit
+  const handlePropertySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPropertyError("");
+    setIsSavingProperty(true);
+
+    try {
+      const url = editingPropertyId
+        ? `/api/admin/properties/${editingPropertyId}`
+        : "/api/admin/properties";
+      const method = editingPropertyId ? "PUT" : "POST";
+
+      const payload = {
+        ...propertyForm,
+        pricePerNight: Number(propertyForm.pricePerNight),
+        bedrooms: Number(propertyForm.bedrooms),
+        bathrooms: Number(propertyForm.bathrooms),
+        maxGuests: Number(propertyForm.maxGuests),
+        amenities: propertyForm.amenities.split(",").map((s) => s.trim()).filter(Boolean)
+      };
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const body = await res.json();
+
+      if (body.success && body.data) {
+        if (editingPropertyId) {
+          setProperties((prev) =>
+            prev.map((p) => (p._id === editingPropertyId ? body.data : p))
+          );
+        } else {
+          setProperties((prev) => [body.data, ...prev]);
+        }
+        setIsPropertyModalOpen(false);
+        fetchAnalytics();
+      } else {
+        setPropertyError(body.message || "Failed to save property");
+      }
+    } catch (err) {
+      console.error(err);
+      setPropertyError("An unexpected error occurred saving the property.");
+    } finally {
+      setIsSavingProperty(false);
+    }
+  };
+
+  // Trigger Edit property form open
+  const openEditProperty = (property: any) => {
+    setEditingPropertyId(property._id);
+    setPropertyForm({
+      title: property.title,
+      description: property.description,
+      type: property.type,
+      status: property.status,
+      pricePerNight: property.pricePerNight.toString(),
+      address: property.address,
+      city: property.city,
+      country: property.country,
+      amenities: (property.amenities || []).join(", "),
+      bedrooms: property.bedrooms.toString(),
+      bathrooms: property.bathrooms.toString(),
+      maxGuests: property.maxGuests.toString(),
+      images: property.images || []
+    });
+    setIsPropertyModalOpen(true);
+  };
+
+  const openCreateProperty = () => {
+    setEditingPropertyId(null);
+    setPropertyForm({
+      title: "",
+      description: "",
+      type: "villa",
+      status: "draft",
+      pricePerNight: "",
+      address: "",
+      city: "",
+      country: "",
+      amenities: "Pool, WiFi, Air Conditioning, Concierge",
+      bedrooms: "2",
+      bathrooms: "2",
+      maxGuests: "4",
+      images: []
+    });
+    setIsPropertyModalOpen(true);
+  };
+
+  // Destinations Management
+  const handleDestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingDest(true);
+    try {
+      const url = "/api/admin/destinations";
+      const method = editingDestId ? "PUT" : "POST";
+      const payload = editingDestId ? { ...destForm, id: editingDestId } : destForm;
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const body = await res.json();
+      if (body.success && body.data) {
+        if (editingDestId) {
+          setDestinations((prev) => prev.map((d) => (d._id === editingDestId ? body.data : d)));
+        } else {
+          setDestinations((prev) => [body.data, ...prev]);
+        }
+        setIsDestModalOpen(false);
+      } else {
+        alert(body.message || "Failed to save destination");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingDest(false);
+    }
+  };
+
+  const handleDeleteDest = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this destination?")) return;
+    try {
+      const res = await fetch(`/api/admin/destinations?id=${id}`, { method: "DELETE" });
+      const body = await res.json();
+      if (body.success) {
+        setDestinations((prev) => prev.filter((d) => d._id !== id));
+      } else {
+        alert(body.message || "Failed to delete destination");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openCreateDest = () => {
+    setEditingDestId(null);
+    setDestForm({ name: "", description: "", image: "", isFeatured: false });
+    setIsDestModalOpen(true);
+  };
+
+  const openEditDest = (dest: any) => {
+    setEditingDestId(dest._id);
+    setDestForm({ name: dest.name, description: dest.description, image: dest.image, isFeatured: dest.isFeatured });
+    setIsDestModalOpen(true);
+  };
+
+  // Banners Management
+  const handleBannerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingBanner(true);
+    try {
+      const url = "/api/admin/banners";
+      const method = editingBannerId ? "PUT" : "POST";
+      const payload = editingBannerId ? { ...bannerForm, id: editingBannerId } : bannerForm;
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const body = await res.json();
+      if (body.success && body.data) {
+        if (editingBannerId) {
+          setBanners((prev) => prev.map((b) => (b._id === editingBannerId ? body.data : b)));
+        } else {
+          setBanners((prev) => [body.data, ...prev]);
+        }
+        setIsBannerModalOpen(false);
+      } else {
+        alert(body.message || "Failed to save banner");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingBanner(false);
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this hero banner?")) return;
+    try {
+      const res = await fetch(`/api/admin/banners?id=${id}`, { method: "DELETE" });
+      const body = await res.json();
+      if (body.success) {
+        setBanners((prev) => prev.filter((b) => b._id !== id));
+      } else {
+        alert(body.message || "Failed to delete banner");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openCreateBanner = () => {
+    setEditingBannerId(null);
+    setBannerForm({ title: "", subtitle: "", image: "", link: "/", isActive: true, order: "0" });
+    setIsBannerModalOpen(true);
+  };
+
+  const openEditBanner = (banner: any) => {
+    setEditingBannerId(banner._id);
+    setBannerForm({
+      title: banner.title,
+      subtitle: banner.subtitle || "",
+      image: banner.image,
+      link: banner.link || "/",
+      isActive: banner.isActive,
+      order: banner.order.toString()
+    });
+    setIsBannerModalOpen(true);
+  };
+
+  // Newsletter unsubscribe
+  const handleDeleteSubscriber = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this subscriber?")) return;
+    try {
+      const res = await fetch(`/api/admin/subscribers?id=${id}`, { method: "DELETE" });
+      const body = await res.json();
+      if (body.success) {
+        setSubscribers((prev) => prev.filter((s) => s._id !== id));
+        alert("Subscriber unsubscribed successfully.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Status badge styling helper
+  const renderStatus = (status: string) => {
+    const styles = {
+      pending: "bg-amber-400/10 text-amber-500 border-amber-500/20",
+      confirmed: "bg-emerald-400/10 text-emerald-500 border-emerald-500/20",
+      cancelled: "bg-red-400/10 text-red-500 border-red-500/20",
+      completed: "bg-blue-400/10 text-blue-500 border-blue-500/20"
+    };
+    const s = status.toLowerCase() as keyof typeof styles;
+    return (
+      <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border", styles[s] || "")}>
+        {status}
+      </span>
+    );
+  };
+
+  const renderPaymentStatus = (status: string) => {
+    const styles = {
+      unpaid: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+      paid: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+      refunded: "bg-blue-500/10 text-blue-500 border-blue-500/20"
+    };
+    const s = status.toLowerCase() as keyof typeof styles;
+    return (
+      <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border", styles[s] || "")}>
+        {status}
+      </span>
+    );
+  };
+
+  // Helper for single image files loaded
+  const handleSingleImageChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setForm: React.Dispatch<React.SetStateAction<any>>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) {
+        alert("Image must be smaller than 4MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm((prev: any) => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // SVG Chart rendering math
+  const trendData = analytics?.revenueTrend || [];
+  const maxRevenue = trendData.length > 0 ? Math.max(...trendData.map((d: any) => d.revenue), 10000) : 10000;
+  const chartHeight = 160;
+  const chartWidth = 580;
+
+  return (
+    <div className="w-full flex flex-col lg:flex-row gap-8 items-start text-left font-sans">
+      {/* Sidebar navigation */}
+      <div className="w-full lg:w-64 bg-white dark:bg-emerald-deep border border-gold/15 rounded-sm p-4 flex flex-col gap-1 shrink-0">
+        <div className="px-4 py-3 border-b border-gold/10 mb-2 flex items-center gap-2">
+          <Award className="h-5 w-5 text-gold" />
+          <span className="font-display font-bold text-lg text-emerald-rich dark:text-gold uppercase tracking-wide">
+            Stayora Admin
+          </span>
+        </div>
+
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left",
+            activeTab === "overview"
+              ? "bg-gold/10 text-gold border border-gold/25"
+              : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
+          )}
+        >
+          <LayoutDashboard className="h-4.5 w-4.5" /> Overview Panel
+        </button>
+
+        <button
+          onClick={() => setActiveTab("properties")}
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left",
+            activeTab === "properties"
+              ? "bg-gold/10 text-gold border border-gold/25"
+              : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
+          )}
+        >
+          <Home className="h-4.5 w-4.5" /> Luxury Properties
+        </button>
+
+        <button
+          onClick={() => setActiveTab("bookings")}
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left",
+            activeTab === "bookings"
+              ? "bg-gold/10 text-gold border border-gold/25"
+              : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
+          )}
+        >
+          <Calendar className="h-4.5 w-4.5" /> Guest Bookings
+        </button>
+
+        <button
+          onClick={() => setActiveTab("users")}
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left",
+            activeTab === "users"
+              ? "bg-gold/10 text-gold border border-gold/25"
+              : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
+          )}
+        >
+          <Users className="h-4.5 w-4.5" /> User Accounts
+        </button>
+
+        <button
+          onClick={() => setActiveTab("content")}
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left",
+            activeTab === "content"
+              ? "bg-gold/10 text-gold border border-gold/25"
+              : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
+          )}
+        >
+          <Compass className="h-4.5 w-4.5" /> Content Editor
+        </button>
+      </div>
+
+      {/* Main Administrative Container */}
+      <div className="flex-1 w-full bg-white dark:bg-emerald-deep border border-gold/15 p-6 sm:p-8 rounded-sm shadow-sm min-h-[30rem]">
+        {/* Tab 1: Overview Dashboard */}
+        {activeTab === "overview" && (
+          <div className="flex flex-col gap-8">
+            <div className="flex items-center justify-between border-b border-gold/10 pb-4">
+              <h2 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold uppercase tracking-wider">
+                Overview & Analytics
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 h-9 text-xs"
+                onClick={fetchAnalytics}
+                isLoading={isLoadingAnalytics}
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Refresh Stats
+              </Button>
+            </div>
+
+            {/* Metrics cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="border border-gold/15 p-5 bg-emerald-rich/[0.01] rounded-sm flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full border border-gold/20 flex items-center justify-center text-gold shrink-0">
+                  <DollarSign className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
+                    Total Revenue
+                  </span>
+                  <span className="text-xl font-bold text-emerald-rich dark:text-gold font-display mt-0.5 block">
+                    {formatCurrency(analytics?.summary?.totalRevenue || 0)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="border border-gold/15 p-5 bg-emerald-rich/[0.01] rounded-sm flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full border border-gold/20 flex items-center justify-center text-gold shrink-0">
+                  <Briefcase className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
+                    Bookings Paid
+                  </span>
+                  <span className="text-xl font-bold text-emerald-rich dark:text-gold font-display mt-0.5 block">
+                    {analytics?.summary?.totalBookings || 0} Stays
+                  </span>
+                </div>
+              </div>
+
+              <div className="border border-gold/15 p-5 bg-emerald-rich/[0.01] rounded-sm flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full border border-gold/20 flex items-center justify-center text-gold shrink-0">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <div className="flex-grow">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
+                    Occupancy Rate
+                  </span>
+                  <span className="text-xl font-bold text-emerald-rich dark:text-gold font-display mt-0.5 block">
+                    {analytics?.summary?.occupancyRate || 0}%
+                  </span>
+                  <div className="w-full bg-emerald-rich/10 h-1.5 rounded-full mt-2 overflow-hidden border border-gold/5">
+                    <div
+                      className="bg-gold h-full transition-all duration-700"
+                      style={{ width: `${analytics?.summary?.occupancyRate || 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border border-gold/15 p-5 bg-emerald-rich/[0.01] rounded-sm flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full border border-gold/20 flex items-center justify-center text-gold shrink-0">
+                  <Home className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
+                    Total Estates
+                  </span>
+                  <span className="text-xl font-bold text-emerald-rich dark:text-gold font-display mt-0.5 block">
+                    {analytics?.summary?.totalProperties || 0} Active
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Visual Charts section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4">
+              {/* Trend Chart (SVG) */}
+              <div className="lg:col-span-2 border border-gold/15 p-6 rounded-sm bg-white dark:bg-emerald-deep/40 flex flex-col gap-4">
+                <h3 className="font-display text-lg font-bold text-emerald-rich dark:text-luxury-cream border-b border-emerald-rich/5 pb-2">
+                  Monthly Revenue Trend (Last 6 Months)
+                </h3>
+
+                {trendData.length > 0 ? (
+                  <div className="w-full flex justify-center py-2">
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight + 40}`} className="w-full max-w-xl h-auto">
+                      {/* Grid Lines */}
+                      {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
+                        const y = 10 + ratio * chartHeight;
+                        const val = Math.round(maxRevenue * (1 - ratio));
+                        return (
+                          <g key={idx}>
+                            <line
+                              x1="55"
+                              y1={y}
+                              x2={chartWidth - 10}
+                              y2={y}
+                              stroke="var(--color-gold, #c5a880)"
+                              strokeOpacity="0.1"
+                              strokeDasharray="4 4"
+                            />
+                            <text
+                              x="45"
+                              y={y + 4}
+                              textAnchor="end"
+                              className="text-[9px] fill-muted-foreground font-semibold"
+                            >
+                              ₹{val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                            </text>
+                          </g>
+                        );
+                      })}
+
+                      {/* Line Paths & Markers */}
+                      <path
+                        fill="none"
+                        stroke="url(#chartGrad)"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d={trendData
+                          .map((d: any, idx: number) => {
+                            const x = 70 + idx * ((chartWidth - 90) / Math.max(trendData.length - 1, 1));
+                            const y = 10 + (1 - d.revenue / maxRevenue) * chartHeight;
+                            return `${idx === 0 ? "M" : "L"} ${x} ${y}`;
+                          })
+                          .join(" ")}
+                      />
+
+                      {/* Area Fill */}
+                      <path
+                        fill="url(#chartArea)"
+                        stroke="none"
+                        d={
+                          trendData
+                            .map((d: any, idx: number) => {
+                              const x = 70 + idx * ((chartWidth - 90) / Math.max(trendData.length - 1, 1));
+                              const y = 10 + (1 - d.revenue / maxRevenue) * chartHeight;
+                              return `${idx === 0 ? "M" : "L"} ${x} ${y}`;
+                            })
+                            .join(" ") +
+                          ` L ${70 + (trendData.length - 1) * ((chartWidth - 90) / Math.max(trendData.length - 1, 1))} ${chartHeight + 10} L 70 ${chartHeight + 10} Z`
+                        }
+                      />
+
+                      {/* Markers */}
+                      {trendData.map((d: any, idx: number) => {
+                        const x = 70 + idx * ((chartWidth - 90) / Math.max(trendData.length - 1, 1));
+                        const y = 10 + (1 - d.revenue / maxRevenue) * chartHeight;
+                        return (
+                          <g key={idx} className="group cursor-pointer">
+                            <circle cx={x} cy={y} r="5" className="fill-gold stroke-white dark:stroke-emerald-deep stroke-2" />
+                            <circle cx={x} cy={y} r="8" className="fill-gold/20 opacity-0 hover:opacity-100 transition-opacity" />
+                            <text
+                              x={x}
+                              y={y - 10}
+                              textAnchor="middle"
+                              className="text-[9px] fill-emerald-rich dark:fill-gold font-bold opacity-0 hover:opacity-100 transition-opacity bg-black"
+                            >
+                              ₹{Math.round(d.revenue / 1000)}k
+                            </text>
+                            {/* X-axis labels */}
+                            <text
+                              x={x}
+                              y={chartHeight + 30}
+                              textAnchor="middle"
+                              className="text-[9px] fill-muted-foreground font-semibold uppercase tracking-wider"
+                            >
+                              {d.month}
+                            </text>
+                          </g>
+                        );
+                      })}
+
+                      {/* Gradients definitions */}
+                      <defs>
+                        <linearGradient id="chartGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#c5a880" />
+                          <stop offset="100%" stopColor="#aa8855" />
+                        </linearGradient>
+                        <linearGradient id="chartArea" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#c5a880" stopOpacity="0.15" />
+                          <stop offset="100%" stopColor="#c5a880" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="h-40 flex items-center justify-center border border-dashed border-gold/15 rounded-sm">
+                    <p className="text-xs text-muted-foreground font-light">Insufficient billing metrics to build trend.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Popular destinations list */}
+              <div className="border border-gold/15 p-6 rounded-sm bg-white dark:bg-emerald-deep/40 flex flex-col gap-4">
+                <h3 className="font-display text-lg font-bold text-emerald-rich dark:text-luxury-cream border-b border-emerald-rich/5 pb-2">
+                  Top Destinations
+                </h3>
+
+                {analytics?.popularDestinations?.length > 0 ? (
+                  <div className="flex flex-col gap-4">
+                    {analytics.popularDestinations.map((dest: any, idx: number) => {
+                      const maxRevenueSeen = Math.max(...analytics.popularDestinations.map((d: any) => d.revenue), 1);
+                      return (
+                        <div key={idx} className="flex flex-col gap-1 text-xs">
+                          <div className="flex justify-between font-semibold">
+                            <span className="text-emerald-rich dark:text-luxury-cream">{dest.city}</span>
+                            <span className="text-gold">{dest.bookings} Bookings</span>
+                          </div>
+                          <div className="w-full bg-emerald-rich/5 border border-gold/5 h-2 rounded-full overflow-hidden relative">
+                            <div
+                              className="bg-gold h-full rounded-full"
+                              style={{ width: `${(dest.revenue / maxRevenueSeen) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground mt-0.5">
+                            Yielded {formatCurrency(dest.revenue)} in billing
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="h-40 flex items-center justify-center border border-dashed border-gold/15 rounded-sm">
+                    <p className="text-xs text-muted-foreground font-light">No destinations bookings found yet.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Properties Management */}
+        {activeTab === "properties" && (
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gold/10 pb-4">
+              <h2 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold uppercase tracking-wider">
+                Estates Portfolio ({properties.length})
+              </h2>
+              <Button variant="luxury" size="sm" className="flex items-center gap-2 h-9 text-xs" onClick={openCreateProperty}>
+                <Plus className="h-4 w-4" /> Add Luxury Property
+              </Button>
+            </div>
+
+            {/* Properties table grid */}
+            <div className="overflow-x-auto w-full border border-gold/15 rounded-sm shadow-sm">
+              <table className="w-full border-collapse text-left text-xs">
+                <thead>
+                  <tr className="bg-emerald-rich/5 dark:bg-emerald-deep/60 text-gold-dark font-bold border-b border-gold/15 uppercase tracking-wider">
+                    <th className="p-4">Estates</th>
+                    <th className="p-4">Type</th>
+                    <th className="p-4">Location</th>
+                    <th className="p-4">Price Per Night</th>
+                    <th className="p-4">State</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gold/10 text-emerald-rich/90 dark:text-luxury-cream/90 font-medium">
+                  {properties.map((prop) => (
+                    <tr key={prop._id} className="hover:bg-emerald-rich/[0.01]">
+                      {/* Image + Title */}
+                      <td className="p-4 flex items-center gap-3 min-w-[20rem]">
+                        <div className="h-10 w-16 bg-luxury-sand rounded-sm overflow-hidden shrink-0 relative border border-gold/10">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={prop.images[0]} alt={prop.title} className="h-full w-full object-cover" />
+                        </div>
+                        <div className="truncate">
+                          <span className="font-bold block text-sm truncate max-w-xs">{prop.title}</span>
+                          <span className="text-[10px] text-muted-foreground block font-mono">ID: {prop._id}</span>
+                        </div>
+                      </td>
+
+                      <td className="p-4 capitalize">{prop.type}</td>
+                      <td className="p-4 truncate max-w-[12rem]">{prop.city}, {prop.country}</td>
+                      <td className="p-4 font-bold text-gold">{formatCurrency(prop.pricePerNight)}</td>
+                      <td className="p-4">
+                        <span
+                          className={cn(
+                            "px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wider border",
+                            prop.status === "published"
+                              ? "bg-emerald-400/10 text-emerald-500 border-emerald-500/20"
+                              : prop.status === "draft"
+                              ? "bg-amber-400/10 text-amber-500 border-amber-500/20"
+                              : "bg-red-400/10 text-red-500 border-red-500/20"
+                          )}
+                        >
+                          {prop.status}
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-right flex items-center justify-end gap-2 h-18">
+                        <button
+                          onClick={() => openEditProperty(prop)}
+                          className="p-2 border border-gold/15 rounded-sm hover:bg-gold/10 text-gold transition-colors"
+                          title="Edit estate"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProperty(prop._id)}
+                          className="p-2 border border-red-500/15 rounded-sm hover:bg-red-500/10 text-red-500 transition-colors"
+                          title="Delete estate"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Booking Tracker */}
+        {activeTab === "bookings" && (
+          <div className="flex flex-col gap-6">
+            <h2 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold border-b border-gold/10 pb-4 uppercase tracking-wider">
+              Guest Bookings Ledger ({bookings.length})
+            </h2>
+
+            <div className="overflow-x-auto w-full border border-gold/15 rounded-sm shadow-sm">
+              <table className="w-full border-collapse text-left text-xs">
+                <thead>
+                  <tr className="bg-emerald-rich/5 dark:bg-emerald-deep/60 text-gold-dark font-bold border-b border-gold/15 uppercase tracking-wider">
+                    <th className="p-4">Estates & Guests</th>
+                    <th className="p-4">User Contact</th>
+                    <th className="p-4">Period / Specs</th>
+                    <th className="p-4">Bill Sum</th>
+                    <th className="p-4">Payment</th>
+                    <th className="p-4">Receipt UTR</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gold/10 text-emerald-rich/90 dark:text-luxury-cream/90 font-medium">
+                  {bookings.map((b) => (
+                    <tr key={b._id} className="hover:bg-emerald-rich/[0.01]">
+                      {/* Property */}
+                      <td className="p-4 min-w-[14rem]">
+                        <span className="font-bold text-sm block">{b.property?.title || "Property Deleted"}</span>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">
+                          {b.property ? `${b.property.city}, ${b.property.country}` : ""}
+                        </span>
+                      </td>
+
+                      {/* User details */}
+                      <td className="p-4 min-w-[10rem]">
+                        <span className="font-bold block">{b.user?.name || "Guest Profile Unavailable"}</span>
+                        <span className="text-[10px] text-muted-foreground block">{b.user?.email}</span>
+                        {b.user?.phoneNumber && (
+                          <span className="text-[10px] text-muted-foreground block mt-0.5">{b.user.phoneNumber}</span>
+                        )}
+                      </td>
+
+                      {/* Dates */}
+                      <td className="p-4 min-w-[12rem]">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold">In: {formatDate(b.checkIn)}</span>
+                          <span className="font-bold">Out: {formatDate(b.checkOut)}</span>
+                          <span className="text-[10px] text-muted-foreground mt-0.5">
+                            {b.guests} Guests staying
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Price */}
+                      <td className="p-4 font-bold text-gold">{formatCurrency(b.totalPrice)}</td>
+
+                      {/* Status */}
+                      <td className="p-4">
+                        <div className="flex flex-col gap-1 items-start">
+                          {renderStatus(b.status)}
+                          {renderPaymentStatus(b.paymentStatus)}
+                        </div>
+                      </td>
+
+                      {/* UPI Info / Screenshot screenshot thumbnail */}
+                      <td className="p-4 min-w-[10rem]">
+                        {b.upiTransactionId ? (
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="font-mono bg-emerald-rich/5 border border-gold/15 px-1.5 py-0.5 rounded-sm font-bold text-[10px] uppercase text-emerald-rich dark:text-gold block">
+                              UTR: {b.upiTransactionId}
+                            </span>
+                            {b.upiReceiptScreenshot ? (
+                              <button
+                                onClick={() => setZoomedImage(b.upiReceiptScreenshot)}
+                                className="text-[10px] text-gold hover:text-gold-light flex items-center gap-1 hover:underline mt-0.5 font-bold"
+                              >
+                                <Eye className="h-3 w-3 shrink-0" /> View Receipt Image
+                              </button>
+                            ) : (
+                              <span className="text-[9px] text-muted-foreground block italic font-light">No screenshot attached</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[9px] text-muted-foreground font-light italic">No payment record</span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="p-4 text-right">
+                        <div className="flex flex-wrap items-center justify-end gap-1.5 min-w-[8rem]">
+                          {b.status === "pending" && (
+                            <button
+                              onClick={() => handleUpdateBooking(b._id, "confirmed", "paid")}
+                              className="px-2 py-1 rounded-sm bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors font-bold text-[9px] uppercase tracking-wider"
+                              title="Approve payments & confirm"
+                            >
+                              Verify Pay
+                            </button>
+                          )}
+
+                          {["pending", "confirmed"].includes(b.status) && (
+                            <button
+                              onClick={() => handleUpdateBooking(b._id, "cancelled", b.paymentStatus === "paid" ? "refunded" : undefined)}
+                              className="px-2 py-1 rounded-sm bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-colors font-bold text-[9px] uppercase tracking-wider"
+                              title="Cancel & mark refund"
+                            >
+                              Cancel Stay
+                            </button>
+                          )}
+
+                          {b.status === "confirmed" && (
+                            <button
+                              onClick={() => handleUpdateBooking(b._id, "completed")}
+                              className="px-2 py-1 rounded-sm bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500/20 transition-colors font-bold text-[9px] uppercase tracking-wider"
+                              title="Mark checkout done"
+                            >
+                              Complete
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 4: User Accounts controller */}
+        {activeTab === "users" && (
+          <div className="flex flex-col gap-6">
+            <h2 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold border-b border-gold/10 pb-4 uppercase tracking-wider">
+              System Profiles Ledger ({users.length})
+            </h2>
+
+            <div className="overflow-x-auto w-full border border-gold/15 rounded-sm shadow-sm">
+              <table className="w-full border-collapse text-left text-xs">
+                <thead>
+                  <tr className="bg-emerald-rich/5 dark:bg-emerald-deep/60 text-gold-dark font-bold border-b border-gold/15 uppercase tracking-wider">
+                    <th className="p-4">Traveller / Agent Profile</th>
+                    <th className="p-4">Contact Info</th>
+                    <th className="p-4">System Role</th>
+                    <th className="p-4">Joined Date</th>
+                    <th className="p-4">Blocked</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gold/10 text-emerald-rich/90 dark:text-luxury-cream/90 font-medium">
+                  {users.map((u) => (
+                    <tr key={u._id} className="hover:bg-emerald-rich/[0.01]">
+                      {/* Name + Avatar */}
+                      <td className="p-4 flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full border border-gold/30 bg-emerald-accent flex items-center justify-center text-gold font-bold text-xs shrink-0 overflow-hidden">
+                          {u.avatar ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={u.avatar} alt={u.name} className="h-full w-full object-cover" />
+                          ) : (
+                            u.name.substring(0, 2).toUpperCase()
+                          )}
+                        </div>
+                        <div>
+                          <span className="font-bold block text-sm">{u.name}</span>
+                          <span className="text-[10px] text-muted-foreground block font-mono">UID: {u._id}</span>
+                        </div>
+                      </td>
+
+                      {/* Contact details */}
+                      <td className="p-4">
+                        <span className="block">{u.email}</span>
+                        {u.phoneNumber && <span className="text-muted-foreground block text-[10px] mt-0.5">{u.phoneNumber}</span>}
+                      </td>
+
+                      {/* System Role */}
+                      <td className="p-4 capitalize">
+                        <span
+                          className={cn(
+                            "px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase border",
+                            u.role === "admin"
+                              ? "bg-gold/15 text-gold border-gold/35"
+                              : u.role === "agent"
+                              ? "bg-blue-400/10 text-blue-500 border-blue-500/20"
+                              : "bg-emerald-400/10 text-emerald-500 border-emerald-500/20"
+                          )}
+                        >
+                          {u.role}
+                        </span>
+                      </td>
+
+                      {/* Joined Date */}
+                      <td className="p-4">{formatDate(u.createdAt)}</td>
+
+                      {/* Blocked state badge */}
+                      <td className="p-4 font-bold">
+                        {u.isBlocked ? (
+                          <span className="text-red-500 uppercase tracking-wider font-bold text-[10px] inline-flex items-center gap-1">
+                            <XCircle className="h-3.5 w-3.5" /> Suspended
+                          </span>
+                        ) : (
+                          <span className="text-emerald-500 uppercase tracking-wider font-bold text-[10px] inline-flex items-center gap-1">
+                            <CheckCircle className="h-3.5 w-3.5" /> Active
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Action block/unblock toggler */}
+                      <td className="p-4 text-right">
+                        {u.role !== "admin" ? (
+                          <button
+                            onClick={() => handleToggleUserBlock(u._id, u.isBlocked)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-sm font-bold text-[10px] uppercase border transition-colors",
+                              u.isBlocked
+                                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20"
+                                : "bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20"
+                            )}
+                          >
+                            {u.isBlocked ? (
+                              <span className="flex items-center gap-1 justify-center">
+                                <UserCheck className="h-3.5 w-3.5" /> Activate
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 justify-center">
+                                <UserX className="h-3.5 w-3.5" /> Suspend
+                              </span>
+                            )}
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground font-light italic">System Owner</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 5: Content Editor */}
+        {activeTab === "content" && (
+          <div className="flex flex-col gap-6">
+            <h2 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold uppercase tracking-wider">
+              Content & Layout Editor
+            </h2>
+
+            {/* Sub-tab menu links */}
+            <div className="flex gap-4 border-b border-gold/10 pb-1">
+              <button
+                onClick={() => setContentSubTab("destinations")}
+                className={cn(
+                  "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors",
+                  contentSubTab === "destinations"
+                    ? "border-gold text-gold"
+                    : "border-transparent text-muted-foreground hover:text-emerald-rich dark:hover:text-luxury-cream"
+                )}
+              >
+                Destinations Collection
+              </button>
+              <button
+                onClick={() => setContentSubTab("banners")}
+                className={cn(
+                  "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors",
+                  contentSubTab === "banners"
+                    ? "border-gold text-gold"
+                    : "border-transparent text-muted-foreground hover:text-emerald-rich dark:hover:text-luxury-cream"
+                )}
+              >
+                Hero Slides Banners
+              </button>
+              <button
+                onClick={() => setContentSubTab("subscribers")}
+                className={cn(
+                  "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors",
+                  contentSubTab === "subscribers"
+                    ? "border-gold text-gold"
+                    : "border-transparent text-muted-foreground hover:text-emerald-rich dark:hover:text-luxury-cream"
+                )}
+              >
+                Newsletter Roster
+              </button>
+            </div>
+
+            {/* Sub-tab 1: Destinations */}
+            {contentSubTab === "destinations" && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    Featured Destinations
+                  </h3>
+                  <Button variant="luxury" size="sm" className="h-8 text-[10px] px-3 font-bold" onClick={openCreateDest}>
+                    <Plus className="h-3 w-3 mr-1" /> Add Destination
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {destinations.map((d) => (
+                    <div key={d._id} className="border border-gold/15 rounded-sm overflow-hidden flex flex-col justify-between bg-emerald-rich/5">
+                      <div className="h-36 bg-luxury-sand relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={d.image} alt={d.name} className="h-full w-full object-cover" />
+                        {d.isFeatured && (
+                          <span className="absolute top-2 left-2 bg-gold text-emerald-deep font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-sm">
+                            Featured
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-4 flex-grow text-left">
+                        <span className="font-display font-bold text-lg text-emerald-rich dark:text-luxury-cream block">
+                          {d.name}
+                        </span>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
+                          {d.description}
+                        </p>
+                      </div>
+                      <div className="p-3 border-t border-gold/10 bg-white dark:bg-emerald-deep/40 flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openEditDest(d)}
+                          className="p-1.5 border border-gold/15 text-gold rounded-sm hover:bg-gold/10"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDest(d._id)}
+                          className="p-1.5 border border-red-500/15 text-red-500 rounded-sm hover:bg-red-500/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sub-tab 2: Hero Banners */}
+            {contentSubTab === "banners" && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    Layout Banners List
+                  </h3>
+                  <Button variant="luxury" size="sm" className="h-8 text-[10px] px-3 font-bold" onClick={openCreateBanner}>
+                    <Plus className="h-3 w-3 mr-1" /> Add Hero Slide
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {banners.map((b) => (
+                    <div key={b._id} className="border border-gold/15 rounded-sm overflow-hidden flex flex-col justify-between bg-emerald-rich/5">
+                      <div className="h-40 bg-luxury-sand relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={b.image} alt={b.title} className="h-full w-full object-cover" />
+                        <div className="absolute inset-0 bg-black/45 flex flex-col justify-end p-4 text-left">
+                          <span className="font-display text-lg font-bold text-white leading-tight">
+                            {b.title}
+                          </span>
+                          <span className="text-xs text-white/70 truncate block">{b.subtitle}</span>
+                        </div>
+                        <span className="absolute top-2 left-2 bg-emerald-deep text-gold border border-gold/20 font-mono text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm">
+                          Order: {b.order}
+                        </span>
+                        <span
+                          className={cn(
+                            "absolute top-2 right-2 font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-sm",
+                            b.isActive ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
+                          )}
+                        >
+                          {b.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                      <div className="p-3 border-t border-gold/10 bg-white dark:bg-emerald-deep/40 flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground font-mono truncate max-w-xs">Link: {b.link}</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEditBanner(b)}
+                            className="p-1.5 border border-gold/15 text-gold rounded-sm hover:bg-gold/10"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBanner(b._id)}
+                            className="p-1.5 border border-red-500/15 text-red-500 rounded-sm hover:bg-red-500/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sub-tab 3: Subscribers */}
+            {contentSubTab === "subscribers" && (
+              <div className="flex flex-col gap-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                  Newsletter Signups Subscribers
+                </h3>
+
+                <div className="overflow-x-auto w-full border border-gold/15 rounded-sm">
+                  <table className="w-full border-collapse text-left text-xs">
+                    <thead>
+                      <tr className="bg-emerald-rich/5 dark:bg-emerald-deep/60 text-gold-dark font-bold border-b border-gold/15 uppercase tracking-wider">
+                        <th className="p-4">Email Address</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4">Joined Date</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gold/10 font-medium text-emerald-rich/90 dark:text-luxury-cream/90">
+                      {subscribers.map((sub) => (
+                        <tr key={sub._id} className="hover:bg-emerald-rich/[0.01]">
+                          <td className="p-4 font-bold">{sub.email}</td>
+                          <td className="p-4">
+                            <span className="text-emerald-500 text-[10px] uppercase font-bold tracking-wider">
+                              Subscribed
+                            </span>
+                          </td>
+                          <td className="p-4">{formatDate(sub.createdAt)}</td>
+                          <td className="p-4 text-right">
+                            <button
+                              onClick={() => handleDeleteSubscriber(sub._id)}
+                              className="p-1.5 border border-red-500/15 text-red-500 rounded-sm hover:bg-red-500/10 transition-colors"
+                              title="Delete subscription"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* MODAL 1: CREATE / EDIT PROPERTY */}
+      <Modal
+        isOpen={isPropertyModalOpen}
+        onClose={() => setIsPropertyModalOpen(false)}
+        title={editingPropertyId ? "Edit Luxury Estate" : "Add Luxury Estate Listing"}
+      >
+        <form onSubmit={handlePropertySubmit} className="flex flex-col gap-4 text-left">
+          {propertyError && <span className="text-xs text-red-500 font-bold">{propertyError}</span>}
+
+          <Input
+            id="estate-title"
+            label="Estate Title"
+            type="text"
+            required
+            value={propertyForm.title}
+            onChange={(e) => setPropertyForm((prev) => ({ ...prev, title: e.target.value }))}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5 w-full">
+              <label htmlFor="estate-type" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+                Estate Type
+              </label>
+              <select
+                id="estate-type"
+                className="w-full px-4 h-11 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none"
+                value={propertyForm.type}
+                onChange={(e) => setPropertyForm((prev) => ({ ...prev, type: e.target.value }))}
+              >
+                <option value="villa">Villa</option>
+                <option value="hotel">Hotel</option>
+                <option value="resort">Resort</option>
+                <option value="apartment">Apartment</option>
+                <option value="cabin">Cabin</option>
+                <option value="mansion">Mansion</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5 w-full">
+              <label htmlFor="estate-status" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+                Publish State
+              </label>
+              <select
+                id="estate-status"
+                className="w-full px-4 h-11 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none"
+                value={propertyForm.status}
+                onChange={(e) => setPropertyForm((prev) => ({ ...prev, status: e.target.value }))}
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              id="estate-price"
+              label="Price Per Night (₹ INR)"
+              type="number"
+              required
+              min="0"
+              value={propertyForm.pricePerNight}
+              onChange={(e) => setPropertyForm((prev) => ({ ...prev, pricePerNight: e.target.value }))}
+            />
+            <Input
+              id="estate-maxguests"
+              label="Maximum Guests Limit"
+              type="number"
+              required
+              min="1"
+              value={propertyForm.maxGuests}
+              onChange={(e) => setPropertyForm((prev) => ({ ...prev, maxGuests: e.target.value }))}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              id="estate-bedrooms"
+              label="Bedrooms Count"
+              type="number"
+              required
+              min="0"
+              value={propertyForm.bedrooms}
+              onChange={(e) => setPropertyForm((prev) => ({ ...prev, bedrooms: e.target.value }))}
+            />
+            <Input
+              id="estate-bathrooms"
+              label="Bathrooms Count"
+              type="number"
+              required
+              min="0"
+              value={propertyForm.bathrooms}
+              onChange={(e) => setPropertyForm((prev) => ({ ...prev, bathrooms: e.target.value }))}
+            />
+          </div>
+
+          <Input
+            id="estate-address"
+            label="Street Address"
+            type="text"
+            required
+            value={propertyForm.address}
+            onChange={(e) => setPropertyForm((prev) => ({ ...prev, address: e.target.value }))}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              id="estate-city"
+              label="City"
+              type="text"
+              required
+              value={propertyForm.city}
+              onChange={(e) => setPropertyForm((prev) => ({ ...prev, city: e.target.value }))}
+            />
+            <Input
+              id="estate-country"
+              label="Country"
+              type="text"
+              required
+              value={propertyForm.country}
+              onChange={(e) => setPropertyForm((prev) => ({ ...prev, country: e.target.value }))}
+            />
+          </div>
+
+          <Input
+            id="estate-amenities"
+            label="Amenities (comma separated)"
+            type="text"
+            placeholder="e.g. Pool, WiFi, Concierge, Ocean View"
+            value={propertyForm.amenities}
+            onChange={(e) => setPropertyForm((prev) => ({ ...prev, amenities: e.target.value }))}
+          />
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="estate-description" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Estate Description
+            </label>
+            <textarea
+              id="estate-description"
+              required
+              rows={4}
+              className="w-full p-4 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream"
+              value={propertyForm.description}
+              onChange={(e) => setPropertyForm((prev) => ({ ...prev, description: e.target.value }))}
+            />
+          </div>
+
+          {/* Image Upload Gallery */}
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Estate Photo Gallery
+            </span>
+            <div className="grid grid-cols-4 gap-3">
+              {propertyForm.images.map((img, idx) => (
+                <div key={idx} className="h-16 rounded-sm overflow-hidden relative border border-gold/10 group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img} alt="preview" className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPropertyForm((prev) => ({
+                        ...prev,
+                        images: prev.images.filter((_, i) => i !== idx)
+                      }))
+                    }
+                    className="absolute inset-0 bg-red-500/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold uppercase transition-opacity"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+              <label className="h-16 border border-dashed border-emerald-rich/20 rounded-sm flex flex-col items-center justify-center hover:bg-emerald-rich/5 cursor-pointer bg-emerald-rich/[0.01]">
+                <Plus className="h-5 w-5 text-gold" />
+                <span className="text-[9px] uppercase font-bold text-muted-foreground mt-0.5">Upload</span>
+                <input type="file" multiple accept="image/*" className="hidden" onChange={handlePropertyImagesChange} />
+              </label>
+            </div>
+          </div>
+
+          <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingProperty}>
+            {editingPropertyId ? "Save Changes" : "Create Estate"}
+          </Button>
+        </form>
+      </Modal>
+
+      {/* MODAL 2: CREATE / EDIT DESTINATION */}
+      <Modal
+        isOpen={isDestModalOpen}
+        onClose={() => setIsDestModalOpen(false)}
+        title={editingDestId ? "Edit Destination" : "Add Destination"}
+      >
+        <form onSubmit={handleDestSubmit} className="flex flex-col gap-4 text-left">
+          <Input
+            id="dest-name"
+            label="Destination Name"
+            type="text"
+            required
+            value={destForm.name}
+            onChange={(e) => setDestForm((prev) => ({ ...prev, name: e.target.value }))}
+          />
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="dest-description" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Description
+            </label>
+            <textarea
+              id="dest-description"
+              required
+              rows={3}
+              className="w-full p-4 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream"
+              value={destForm.description}
+              onChange={(e) => setDestForm((prev) => ({ ...prev, description: e.target.value }))}
+            />
+          </div>
+
+          {/* Photo upload */}
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Destination Image
+            </span>
+            {destForm.image && (
+              <div className="h-28 w-44 rounded-sm overflow-hidden border border-gold/15 relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={destForm.image} alt="preview" className="h-full w-full object-cover" />
+              </div>
+            )}
+            <label className="flex items-center gap-2 border border-dashed border-emerald-rich/20 rounded-sm p-4 bg-emerald-rich/[0.01] cursor-pointer hover:bg-emerald-rich/5">
+              <Upload className="h-4 w-4 text-gold" />
+              <span className="text-xs text-muted-foreground">Select Photo image (JPEG/PNG)</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleSingleImageChange(e, setDestForm)} />
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              id="dest-featured"
+              checked={destForm.isFeatured}
+              onChange={(e) => setDestForm((prev) => ({ ...prev, isFeatured: e.target.checked }))}
+              className="h-4 w-4 rounded-sm border-gold/20"
+            />
+            <label htmlFor="dest-featured" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-luxury-cream">
+              Feature on Homepage slider
+            </label>
+          </div>
+
+          <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingDest}>
+            {editingDestId ? "Save Changes" : "Create Destination"}
+          </Button>
+        </form>
+      </Modal>
+
+      {/* MODAL 3: CREATE / EDIT HERO BANNER */}
+      <Modal
+        isOpen={isBannerModalOpen}
+        onClose={() => setIsBannerModalOpen(false)}
+        title={editingBannerId ? "Edit Hero Banner" : "Add Hero Banner"}
+      >
+        <form onSubmit={handleBannerSubmit} className="flex flex-col gap-4 text-left">
+          <Input
+            id="banner-title"
+            label="Banner Title"
+            type="text"
+            required
+            value={bannerForm.title}
+            onChange={(e) => setBannerForm((prev) => ({ ...prev, title: e.target.value }))}
+          />
+          <Input
+            id="banner-subtitle"
+            label="Subtitle / Description"
+            type="text"
+            value={bannerForm.subtitle}
+            onChange={(e) => setBannerForm((prev) => ({ ...prev, subtitle: e.target.value }))}
+          />
+          <Input
+            id="banner-link"
+            label="Redirect URL Link"
+            type="text"
+            value={bannerForm.link}
+            onChange={(e) => setBannerForm((prev) => ({ ...prev, link: e.target.value }))}
+          />
+          <Input
+            id="banner-order"
+            label="Order Index Position"
+            type="number"
+            value={bannerForm.order}
+            onChange={(e) => setBannerForm((prev) => ({ ...prev, order: e.target.value }))}
+          />
+
+          {/* Photo upload */}
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Banner Background Image
+            </span>
+            {bannerForm.image && (
+              <div className="h-28 w-52 rounded-sm overflow-hidden border border-gold/15 relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={bannerForm.image} alt="preview" className="h-full w-full object-cover" />
+              </div>
+            )}
+            <label className="flex items-center gap-2 border border-dashed border-emerald-rich/20 rounded-sm p-4 bg-emerald-rich/[0.01] cursor-pointer hover:bg-emerald-rich/5">
+              <Upload className="h-4 w-4 text-gold" />
+              <span className="text-xs text-muted-foreground">Select Background image (JPEG/PNG)</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleSingleImageChange(e, setBannerForm)} />
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              id="banner-active"
+              checked={bannerForm.isActive}
+              onChange={(e) => setBannerForm((prev) => ({ ...prev, isActive: e.target.checked }))}
+              className="h-4 w-4 rounded-sm border-gold/20"
+            />
+            <label htmlFor="banner-active" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-luxury-cream">
+              Set Active on homepage slider
+            </label>
+          </div>
+
+          <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingBanner}>
+            {editingBannerId ? "Save Changes" : "Create Banner"}
+          </Button>
+        </form>
+      </Modal>
+
+      {/* MODAL 4: IMAGE ZOOM MODAL */}
+      <Modal isOpen={!!zoomedImage} onClose={() => setZoomedImage(null)} title="Transaction Receipt Screenshot Preview">
+        <div className="max-w-2xl max-h-[80vh] flex items-center justify-center p-2">
+          {zoomedImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={zoomedImage} alt="UTR Screenshot Receipt" className="max-w-full max-h-[70vh] object-contain rounded-sm border border-gold/20 shadow-lg" />
+          )}
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default AdminClient;

@@ -2,132 +2,108 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { loginSchema } from "@/validations/auth";
 import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
 import { ArrowLeft } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, error: authError, isLoading } = useAuth();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const searchParams = useSearchParams();
+  const { setUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    if (errors[e.target.name]) {
-      setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
-    }
-  };
+  // Retrieve optional role parameter from query string (?role=admin or defaults to user)
+  const requestedRole = searchParams.get("role") === "admin" ? "admin" : "user";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    setError("");
 
-    const parsed = loginSchema.safeParse(formData);
-    if (!parsed.success) {
-      const fieldErrors: Record<string, string> = {};
-      parsed.error.issues.forEach((err) => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0].toString()] = err.message;
-        }
+    try {
+      const response = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: requestedRole }),
       });
-      setErrors(fieldErrors);
-      return;
-    }
+      const body = await response.json();
 
-    const success = await login(formData);
-    if (success) {
-      router.push("/");
+      if (body.success && body.data) {
+        setUser(body.data);
+        router.push("/");
+        router.refresh();
+      } else {
+        setError(body.message || "Google authentication failed");
+      }
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred connecting to Google");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-emerald-deep font-sans">
-      {/* Forms panel */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 lg:px-16 bg-luxury-cream dark:bg-emerald-deep">
-        <div className="w-full max-w-md flex flex-col gap-8">
-          
-          <div className="flex flex-col gap-3">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-rich/60 dark:text-luxury-cream/60 hover:text-gold dark:hover:text-gold transition-colors uppercase tracking-wider"
-            >
-              <ArrowLeft className="h-4.5 w-4.5" /> Back to Home
-            </Link>
-            <h1 className="font-display text-4xl font-semibold text-emerald-rich dark:text-luxury-cream tracking-wide">
-              Sign In
+    <div className="min-h-screen flex items-center justify-center relative bg-[url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center font-sans">
+      {/* Dark premium backdrop overlay */}
+      <div className="absolute inset-0 bg-emerald-deep/75 backdrop-blur-[4px] z-0" />
+
+      {/* Centered Modal Card - Decreased width, Increased height, Tall Flex Column */}
+      <div className="relative z-10 w-full max-w-[350px] min-h-[480px] mx-4 bg-white dark:bg-emerald-deep/90 border border-gold/25 p-6 py-12 rounded-sm shadow-2xl flex flex-col justify-between text-center">
+        
+        {/* Top: Back link */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-rich/50 dark:text-luxury-cream/50 hover:text-gold dark:hover:text-gold transition-colors uppercase tracking-wider self-start"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back
+        </Link>
+
+        {/* Middle: Brand Monogram */}
+        <div className="flex flex-col items-center gap-3 my-auto py-4">
+          <div className="h-14 w-14 rounded-full border border-gold/45 flex items-center justify-center bg-gold/5 shrink-0 shadow-md">
+            <span className="font-display text-gold text-2xl font-bold italic tracking-tighter">S</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <h1 className="font-display text-3xl font-light text-emerald-rich dark:text-white leading-tight">
+              Welcome to <span className="font-semibold text-gold">Stayora</span>
             </h1>
-            <p className="text-sm text-emerald-rich/60 dark:text-luxury-cream/60">
-              Welcome back. Access your personalized luxury stays.
+            <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+              Access your bespoke travel itinerary and luxury retreats.
             </p>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {authError && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-sm text-xs font-medium">
-                {authError}
-              </div>
-            )}
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-sm text-xs font-semibold my-2">
+            {error}
+          </div>
+        )}
 
-            <Input
-              id="email"
-              name="email"
-              label="Email Address"
-              type="email"
-              placeholder="alexander@luxury.com"
-              value={formData.email}
-              onChange={handleChange}
-              error={errors.email}
-              required
-            />
+        {/* Bottom: Single Continue with Google Button */}
+        <div className="flex flex-col gap-4">
+          <Button
+            variant="luxury"
+            size="lg"
+            onClick={handleGoogleLogin}
+            isLoading={isLoading}
+            className="w-full flex items-center justify-center gap-3 py-3 h-12 text-xs font-semibold uppercase tracking-wider"
+          >
+            {/* SVG Google Logo */}
+            <svg className="h-4.5 w-4.5 shrink-0" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
+            </svg>
+            Continue with Google
+          </Button>
 
-            <Input
-              id="password"
-              name="password"
-              label="Password"
-              type="password"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password}
-              required
-            />
-
-            <Button variant="primary" size="lg" type="submit" isLoading={isLoading} className="mt-2">
-              Sign In
-            </Button>
-          </form>
-
-          <p className="text-center text-sm text-emerald-rich/60 dark:text-luxury-cream/60">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-gold font-medium hover:underline">
-              Register
-            </Link>
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            By signing in, you agree to Stayora&apos;s luxury membership Terms of Service and Privacy Policy.
           </p>
         </div>
-      </div>
 
-      {/* Visual luxury side panel - hidden on mobile */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-[url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center items-center justify-center">
-        <div className="absolute inset-0 bg-emerald-deep/75 backdrop-blur-[2px]" />
-        <div className="relative z-10 p-12 text-center max-w-lg flex flex-col gap-6">
-          <Link href="/" className="font-display text-4xl font-bold tracking-[0.25em] text-gold">
-            STAYORA
-          </Link>
-          <hr className="w-16 mx-auto border-gold/40" />
-          <h2 className="font-display text-3xl md:text-4xl text-luxury-cream font-medium tracking-wide">
-            Your Premium Escape Awaits
-          </h2>
-          <p className="text-luxury-cream/70 text-sm leading-relaxed">
-            Log in to manage your bookings, message property hosts, and check exclusive, member-only luxury itineraries.
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
 import { ApiResponse } from "@/lib/api-response";
-import { UnauthorizedError } from "@/lib/errors";
-import { verifyAccessToken, verifyRefreshToken, setAuthCookies } from "@/lib/jwt";
+import { UnauthorizedError, ForbiddenError } from "@/lib/errors";
+import { verifyAccessToken, verifyRefreshToken, setAuthCookies, clearAuthCookies } from "@/lib/jwt";
 import { cookies } from "next/headers";
 
 export async function GET(req: NextRequest) {
@@ -20,6 +20,10 @@ export async function GET(req: NextRequest) {
       if (decodedAccess) {
         const user = await User.findById(decodedAccess.id).select("-password -refreshTokens");
         if (user) {
+          if (user.isBlocked) {
+            await clearAuthCookies();
+            throw new ForbiddenError("Your account has been suspended by an administrator.");
+          }
           const userResponse = {
             id: user._id.toString(),
             name: user.name,
@@ -39,6 +43,10 @@ export async function GET(req: NextRequest) {
       if (decodedRefresh) {
         const user = await User.findOne({ _id: decodedRefresh.id, refreshTokens: refreshToken });
         if (user) {
+          if (user.isBlocked) {
+            await clearAuthCookies();
+            throw new ForbiddenError("Your account has been suspended by an administrator.");
+          }
           // Token is valid. Auto-refresh tokens for the client.
           const tokenPayload = {
             id: user._id.toString(),

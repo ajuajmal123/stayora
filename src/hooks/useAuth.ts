@@ -113,5 +113,6 @@ export function useAuth() {
     register,
     logout,
     checkSession,
+    setUser,
   };
 }
