@@ -1,26 +1,99 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Luxury Color Palette - Emerald Green & Gold */
+  --color-emerald-deep: #031c16;
+  --color-emerald-rich: #063c30;
+  --color-emerald-accent: #0a4235;
+  --color-emerald-light: #f0f6f4;
+  
+  --color-gold-light: #f1e4c3;
+  --color-gold-subtle: #dfba73;
+  --color-gold: #d4af37;
+  --color-gold-dark: #b89047;
+  
+  --color-luxury-black: #080d0c;
+  --color-luxury-cream: #faf9f6;
+  --color-luxury-sand: #f4f1ea;
+
+  /* Typography */
+  --font-display: var(--font-cormorant), Georgia, serif;
+  --font-sans: var(--font-outfit), system-ui, -apple-system, sans-serif;
+  
+  /* Shared transitions */
+  --transition-luxury: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --background: #faf9f6;
+  --foreground: #080d0c;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #031c16;
+    --foreground: #faf9f6;
   }
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Luxury Shimmer effect */
+@keyframes luxury-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(212, 175, 55, 0.05) 25%,
+    rgba(212, 175, 55, 0.15) 50%,
+    rgba(212, 175, 55, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: luxury-shimmer 2s infinite linear;
+}
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #031c16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4af37;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b89047;
+}
+
+/* Glassmorphism Class */
+.glassmorphism {
+  background: rgba(3, 28, 22, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.glassmorphism-light {
+  background: rgba(250, 249, 246, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(6, 60, 48, 0.08);
 }
