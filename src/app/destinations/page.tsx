@@ -1,0 +1,120 @@
+import React from "react";
+import Link from "next/link";
+import { connectToDatabase } from "@/lib/mongodb";
+import Destination from "@/models/Destination";
+import Property from "@/models/Property";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import { Compass, Sparkles, MapPin } from "lucide-react";
+
+export const metadata = {
+  title: "Exclusive Destinations | Stayora Luxury Travel",
+  description: "Explore Stayora's portfolio of curated world-class travel locations including the French Riviera, Amalfi Coast, and Swiss Alps.",
+};
+
+export default async function DestinationsPage() {
+  await connectToDatabase();
+  const destinations = await Destination.find().sort({ isFeatured: -1, name: 1 });
+
+  // Dynamically query property counts for each destination to ensure data accuracy
+  const destinationsWithCounts = await Promise.all(
+    destinations.map(async (dest) => {
+      // Find properties matching the destination city name or description keywords
+      const count = await Property.countDocuments({
+        status: "published",
+        $or: [
+          { city: { $regex: dest.name, $options: "i" } },
+          { country: { $regex: dest.name, $options: "i" } },
+        ],
+      });
+      return {
+        ...dest.toObject(),
+        propertiesCount: count || dest.propertiesCount || 0,
+      };
+    })
+  );
+
+  return (
+    <div className="min-h-screen flex flex-col bg-luxury-cream dark:bg-emerald-deep font-sans">
+      <Navbar />
+
+      {/* Hero Header */}
+      <section className="bg-emerald-rich text-luxury-cream pt-32 pb-16 relative overflow-hidden">
+        <div className="absolute inset-0 z-0 bg-[url('https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-10" />
+        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center flex flex-col gap-4 items-center">
+          <span className="text-xs uppercase tracking-[0.25em] text-gold font-bold flex items-center gap-1.5">
+            <Compass className="h-4 w-4" /> Curated Worlds
+          </span>
+          <h1 className="font-display text-4xl sm:text-5xl font-light tracking-wide">
+            Our <span className="font-semibold text-gold">Exclusive Destinations</span>
+          </h1>
+          <hr className="w-12 border-gold" />
+          <p className="text-xs sm:text-sm text-luxury-cream/70 max-w-xl leading-relaxed">
+            From private sun-soaked coves to majestic alpine valleys, we present a collection of destinations that redefine luxury and offer absolute peace.
+          </p>
+        </div>
+      </section>
+
+      {/* Destinations Grid */}
+      <section className="flex-1 max-w-7xl mx-auto px-6 py-20 w-full flex flex-col gap-12 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {destinationsWithCounts.map((dest) => (
+            <Card key={dest.slug} className="group flex flex-col h-[28rem] relative overflow-hidden">
+              {/* Image Container */}
+              <div className="h-64 overflow-hidden relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={dest.image}
+                  alt={dest.name}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                <div className="absolute bottom-4 left-4 bg-emerald-deep/80 backdrop-blur-md px-3 py-1 border border-gold/20 rounded-sm">
+                  <span className="text-[10px] font-bold text-gold tracking-widest uppercase">
+                    {dest.propertiesCount} {dest.propertiesCount === 1 ? "Stay" : "Stays"}
+                  </span>
+                </div>
+              </div>
+
+              <CardHeader className="flex-1 p-6 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-2xl font-semibold hover:text-gold transition-colors">
+                    {dest.name}
+                  </CardTitle>
+                  {dest.isFeatured && (
+                    <span className="flex items-center gap-1 text-[9px] uppercase tracking-wider bg-gold/10 text-gold px-2 py-0.5 border border-gold/20 rounded-sm font-bold">
+                      <Sparkles className="h-3 w-3" /> Featured
+                    </span>
+                  )}
+                </div>
+                <CardDescription className="line-clamp-3 text-xs leading-relaxed mt-1">
+                  {dest.description}
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="px-6 pb-6 pt-0">
+                <Link href={`/stays?destination=${encodeURIComponent(dest.name)}`} className="w-full">
+                  <Button variant="outline" size="sm" className="w-full text-xs flex items-center justify-center gap-2 group-hover:bg-gold group-hover:text-emerald-deep group-hover:border-gold">
+                    Explore Stays <ArrowIcon />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+    </svg>
+  );
+}

@@ -1,147 +1,193 @@
-"use client";
-
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import React from "react";
+import Link from "next/link";
+import { connectToDatabase } from "@/lib/mongodb";
+import Property from "@/models/Property";
+import Destination from "@/models/Destination";
+import User from "@/models/User";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
+import HomeSearch from "@/components/home/HomeSearch";
+import WishlistToggle from "@/components/stays/WishlistToggle";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
-import Modal from "@/components/ui/Modal";
-import Loader from "@/components/ui/Loader";
-import Skeleton from "@/components/ui/Skeleton";
-import { MapPin, Users, BedDouble, Bath, Star, Compass, ShieldCheck, Award } from "lucide-react";
+import Button from "@/components/ui/Button";
+import { Compass, Users, ShieldCheck, Award, MapPin, Star, BedDouble, Bath, ArrowRight, Sparkles } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { verifyAccessToken } from "@/lib/jwt";
+import { cookies } from "next/headers";
 
-export default function HomePage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [testEmail, setTestEmail] = useState("");
-  const [testPassword, setTestPassword] = useState("");
+// Fetch user wishlist if authenticated
+async function getWishlistSet(): Promise<Set<string>> {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get("accessToken")?.value;
+  if (!accessToken) return new Set();
 
-  const mockProperties = [
-    {
-      title: "Villa Céleste",
-      description: "Perched high above the French Riviera, Villa Céleste offers panoramic sea vistas, infinity-edge swimming pool, and dedicated butler service.",
-      type: "Villa",
-      pricePerNight: 2450,
-      city: "St. Tropez",
-      country: "France",
-      rating: 4.98,
-      reviewsCount: 34,
-      bedrooms: 6,
-      bathrooms: 7,
-      maxGuests: 12,
-      image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      title: "The Obsidian Canopy",
-      description: "An architectural marvel constructed in the Icelandic woodlands, featuring geothermal pools, full floor-to-ceiling glass walls, and northern lights viewing deck.",
-      type: "Resort",
-      pricePerNight: 1850,
-      city: "Grímsnes",
-      country: "Iceland",
-      rating: 4.92,
-      reviewsCount: 19,
-      bedrooms: 3,
-      bathrooms: 3,
-      maxGuests: 6,
-      image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80",
-    },
-  ];
+  const decoded = verifyAccessToken(accessToken);
+  if (!decoded) return new Set();
+
+  await connectToDatabase();
+  const user = await User.findById(decoded.id).select("wishlist");
+  if (!user || !user.wishlist) return new Set();
+
+  return new Set(user.wishlist.map((id: any) => id.toString()));
+}
+
+export default async function HomePage() {
+  await connectToDatabase();
+
+  // 1. Fetch featured properties (top rated first)
+  const featuredStays = await Property.find({ status: "published" })
+    .sort({ rating: -1, pricePerNight: -1 })
+    .limit(4);
+
+  // 2. Fetch list of unique destinations for the search dropdown
+  const destinations = await Destination.find().distinct("name");
+  const propertyCities = await Property.distinct("city");
+  const uniqueDestinations = Array.from(new Set([...destinations, ...propertyCities])).sort();
+
+  // 3. Fetch featured destinations cards (top 3)
+  const featuredDestinations = await Destination.find({ isFeatured: true }).limit(3);
+
+  // 4. Fetch saved wishlist property IDs
+  const wishlistedIds = await getWishlistSet();
 
   return (
     <div className="min-h-screen flex flex-col bg-luxury-cream dark:bg-emerald-deep text-luxury-black dark:text-luxury-cream transition-colors duration-500">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
+      {/* Hero Header & Search Section */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-24">
+        {/* Background image */}
         <div className="absolute inset-0 z-0 bg-[url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center">
           <div className="absolute inset-0 bg-emerald-deep/65 backdrop-blur-[1px]" />
         </div>
 
-        <div className="relative z-10 max-w-5xl mx-auto px-6 text-center flex flex-col gap-6 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gold/30 bg-emerald-accent/60 backdrop-blur-md text-[10px] sm:text-xs text-gold uppercase tracking-[0.2em] font-bold"
-          >
+        <div className="relative z-10 max-w-5xl mx-auto px-6 text-center flex flex-col gap-8 items-center mt-12">
+          
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gold/30 bg-emerald-accent/60 backdrop-blur-md text-[10px] sm:text-xs text-gold uppercase tracking-[0.2em] font-bold">
             <Award className="h-4 w-4" /> The Gold Standard of Stays
-          </motion.div>
+          </div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            className="font-display text-5xl sm:text-6xl md:text-7xl font-light text-luxury-cream leading-tight max-w-4xl"
-          >
+          <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-light text-luxury-cream leading-tight max-w-4xl">
             Refining the Art of <span className="font-bold text-gold">Luxury Travel</span>
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.5 }}
-            className="text-luxury-cream/70 text-base md:text-lg max-w-2xl font-light leading-relaxed font-sans"
-          >
+          <p className="text-luxury-cream/70 text-sm sm:text-base md:text-lg max-w-2xl font-light leading-relaxed font-sans">
             Discover and book exclusive private estates, high-end design villas, and luxury boutique resorts meticulously curated for the world’s most discerning travelers.
-          </motion.p>
+          </p>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
-            className="flex flex-col sm:flex-row items-center gap-4 mt-4"
-          >
-            <Button variant="luxury" size="lg" onClick={() => setIsModalOpen(true)}>
-              Explore Showcase
-            </Button>
-            <Button variant="outline" size="lg" className="border-luxury-cream text-luxury-cream hover:bg-luxury-cream/15">
-              Contact Concierge
-            </Button>
-          </motion.div>
+          {/* Hero search bar component */}
+          <div className="w-full mt-4">
+            <HomeSearch destinations={uniqueDestinations} />
+          </div>
+
         </div>
       </section>
 
-      {/* Showcase Grid of Platform Infrastructure */}
-      <section className="py-24 max-w-7xl mx-auto px-6 w-full flex flex-col gap-16">
-        <div className="flex flex-col gap-4 text-center max-w-2xl mx-auto">
-          <span className="text-xs uppercase tracking-[0.25em] text-gold font-bold">Reusable Core Components</span>
-          <h2 className="font-display text-4xl sm:text-5xl font-semibold text-emerald-rich dark:text-luxury-cream">
-            Built for Scale & Luxury
-          </h2>
-          <hr className="w-12 mx-auto border-gold mt-2" />
+      {/* Trust Badges Section */}
+      <section className="py-20 bg-white dark:bg-emerald-deep/40 border-y border-gold/15">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 text-center">
+          
+          <div className="flex flex-col items-center gap-4 group">
+            <div className="h-14 w-14 rounded-full border border-gold/20 flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-emerald-deep transition-all duration-500">
+              <Compass className="h-6 w-6" />
+            </div>
+            <h3 className="font-display text-lg font-bold tracking-wide">Curated Portfolio</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+              Every private villa and penthouse is vetted through our 150-point luxury inspection.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-4 group">
+            <div className="h-14 w-14 rounded-full border border-gold/20 flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-emerald-deep transition-all duration-500">
+              <Users className="h-6 w-6" />
+            </div>
+            <h3 className="font-display text-lg font-bold tracking-wide">Bespoke Concierge</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+              Direct, 24/7 access to personal travel hosts to customize dining, transport, and itineraries.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-4 group">
+            <div className="h-14 w-14 rounded-full border border-gold/20 flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-emerald-deep transition-all duration-500">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <h3 className="font-display text-lg font-bold tracking-wide">Absolute Privacy</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+              Secluded properties with advanced security integrations, private lifts, and secured beachheads.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-4 group">
+            <div className="h-14 w-14 rounded-full border border-gold/20 flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-emerald-deep transition-all duration-500">
+              <Award className="h-6 w-6" />
+            </div>
+            <h3 className="font-display text-lg font-bold tracking-wide">5-Star Standards</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+              Premium linens, fine art collections, custom spas, and professional chef services standard.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Featured Stays Section */}
+      <section className="py-24 max-w-7xl mx-auto px-6 w-full flex flex-col gap-12 text-left">
+        <div className="flex flex-col sm:flex-row items-end justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs uppercase tracking-[0.25em] text-gold font-bold">Handpicked Retreats</span>
+            <h2 className="font-display text-4xl sm:text-5xl font-light text-emerald-rich dark:text-luxury-cream">
+              Featured <span className="font-bold text-gold">Stays</span>
+            </h2>
+          </div>
+          <Link href="/stays">
+            <Button variant="outline" className="flex items-center gap-2 text-xs">
+              View All Properties <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
 
-        {/* Mock Property Cards */}
-        <div className="flex flex-col gap-8">
-          <h3 className="font-display text-2xl font-semibold text-emerald-rich dark:text-gold-subtle border-b border-emerald-rich/5 pb-2">
-            Property Display Showcase (Cards & Image Zoom)
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {mockProperties.map((prop) => (
-              <Card key={prop.title}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {featuredStays.map((prop) => {
+            const isSaved = wishlistedIds.has(prop._id.toString());
+            return (
+              <Card key={prop.slug} className="group">
                 <div className="relative h-72 overflow-hidden bg-luxury-sand">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={prop.image}
-                    alt={prop.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
+                  <Link href={`/stays/${prop.slug}`} className="block h-full w-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={prop.images[0]}
+                      alt={prop.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  </Link>
                   <div className="absolute top-4 left-4 bg-emerald-deep/80 backdrop-blur-md px-3 py-1 border border-gold/20 rounded-sm">
                     <span className="text-[10px] uppercase font-bold text-gold tracking-widest">{prop.type}</span>
                   </div>
-                  <div className="absolute top-4 right-4 bg-white/95 dark:bg-emerald-deep/90 backdrop-blur-sm px-2 py-1 rounded-sm flex items-center gap-1 text-xs font-semibold text-emerald-rich dark:text-gold">
-                    <Star className="h-3.5 w-3.5 fill-gold text-gold" /> {prop.rating}
+                  {prop.rating > 0 && (
+                    <div className="absolute top-4 right-4 bg-white/95 dark:bg-emerald-deep/90 backdrop-blur-sm px-2 py-1 rounded-sm flex items-center gap-1 text-[10px] font-semibold text-emerald-rich dark:text-gold">
+                      <Star className="h-3.5 w-3.5 fill-gold text-gold" /> {prop.rating}
+                    </div>
+                  )}
+                  {/* Floating Wishlist Heart */}
+                  <div className="absolute bottom-4 right-4 z-10">
+                    <WishlistToggle
+                      propertyId={prop._id.toString()}
+                      initialIsWishlisted={isSaved}
+                    />
                   </div>
                 </div>
 
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>{prop.title}</CardTitle>
-                    <span className="text-lg font-bold text-emerald-rich dark:text-gold">
-                      {formatCurrency(prop.pricePerNight)} <span className="text-xs font-normal text-muted-foreground">/ night</span>
-                    </span>
+                  <div className="flex items-start justify-between gap-4">
+                    <Link href={`/stays/${prop.slug}`}>
+                      <CardTitle className="hover:text-gold transition-colors">{prop.title}</CardTitle>
+                    </Link>
+                    <div className="text-right">
+                      <span className="text-base font-bold text-emerald-rich dark:text-gold">
+                        {formatCurrency(prop.pricePerNight)}
+                      </span>
+                      <span className="text-[10px] block text-muted-foreground font-normal">/ night</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground/80 mt-1">
                     <MapPin className="h-3.5 w-3.5 text-gold-dark" />
@@ -150,169 +196,109 @@ export default function HomePage() {
                 </CardHeader>
 
                 <CardContent>
-                  <CardDescription className="line-clamp-2">{prop.description}</CardDescription>
+                  <CardDescription className="line-clamp-2 text-xs">{prop.description}</CardDescription>
                   
-                  {/* Property Details */}
-                  <div className="grid grid-cols-3 gap-4 border-t border-emerald-rich/5 mt-6 pt-4 text-xs font-medium text-emerald-rich/80 dark:text-luxury-cream/80">
-                    <div className="flex items-center gap-2">
-                      <BedDouble className="h-4.5 w-4.5 text-gold" />
-                      <span>{prop.bedrooms} Bedrooms</span>
+                  {/* Specs details */}
+                  <div className="grid grid-cols-3 gap-2 border-t border-emerald-rich/5 mt-4 pt-3 text-[11px] font-medium text-emerald-rich/80 dark:text-luxury-cream/80">
+                    <div className="flex items-center gap-1.5">
+                      <BedDouble className="h-4 w-4 text-gold-dark" />
+                      <span>{prop.bedrooms} Bed</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Bath className="h-4.5 w-4.5 text-gold" />
-                      <span>{prop.bathrooms} Bathrooms</span>
+                    <div className="flex items-center gap-1.5">
+                      <Bath className="h-4 w-4 text-gold-dark" />
+                      <span>{prop.bathrooms} Bath</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4.5 w-4.5 text-gold" />
-                      <span>{prop.maxGuests} Guests</span>
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-4 w-4 text-gold-dark" />
+                      <span>{prop.maxGuests} Max Guests</span>
                     </div>
                   </div>
                 </CardContent>
-                
-                <CardFooter className="justify-between items-center bg-emerald-rich/[0.02] dark:bg-emerald-light/[0.01]">
-                  <span className="text-[11px] text-muted-foreground">Inclusive of custom luxury amenities</span>
-                  <Button variant="outline" size="sm">Book Now</Button>
+
+                <CardFooter className="justify-between items-center bg-emerald-rich/[0.01] dark:bg-emerald-light/[0.005] border-t border-emerald-rich/5 py-3">
+                  <span className="text-[10px] text-muted-foreground">Premium Concierge Standard</span>
+                  <Link href={`/stays/${prop.slug}`}>
+                    <Button variant="outline" size="sm" className="h-9 py-0">Details</Button>
+                  </Link>
                 </CardFooter>
               </Card>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      </section>
 
-        {/* Buttons and Inputs Showcase */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-8">
+      {/* Featured Destinations Showcase */}
+      <section className="py-24 bg-emerald-deep text-luxury-cream text-left relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-5" />
+        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full flex flex-col gap-12">
           
-          {/* Buttons showcase */}
-          <div className="flex flex-col gap-6">
-            <h3 className="font-display text-2xl font-semibold text-emerald-rich dark:text-gold-subtle border-b border-emerald-rich/5 pb-2">
-              Premium Button Variants
-            </h3>
-            <div className="flex flex-wrap gap-4 items-center">
-              <Button variant="primary">Primary Emerald</Button>
-              <Button variant="secondary">Secondary Cream</Button>
-              <Button variant="outline">Gold Outline</Button>
-              <Button variant="luxury">Luxury Gold Gradient</Button>
-              <Button variant="ghost">Ghost Button</Button>
-              <Button variant="primary" isLoading>Loading State</Button>
+          <div className="flex flex-col sm:flex-row items-end justify-between gap-4">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs uppercase tracking-[0.25em] text-gold font-bold">Wanderlust Collections</span>
+              <h2 className="font-display text-4xl sm:text-5xl font-light text-luxury-cream">
+                Featured <span className="font-bold text-gold">Destinations</span>
+              </h2>
             </div>
+            <Link href="/destinations">
+              <Button variant="outline" className="border-gold text-gold hover:bg-gold/10 flex items-center gap-2 text-xs">
+                View All Destinations <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
           </div>
 
-          {/* Inputs showcase */}
-          <div className="flex flex-col gap-6">
-            <h3 className="font-display text-2xl font-semibold text-emerald-rich dark:text-gold-subtle border-b border-emerald-rich/5 pb-2">
-              Luxury Input Fields
-            </h3>
-            <div className="flex flex-col gap-4">
-              <Input
-                id="showcase-email"
-                label="Sample Floating Label Input"
-                type="email"
-                placeholder="alexander@luxurystays.com"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-              />
-              <Input
-                id="showcase-pass"
-                label="Required Validation Input"
-                type="password"
-                placeholder="Password"
-                value={testPassword}
-                onChange={(e) => setTestPassword(e.target.value)}
-                error={testPassword.length > 0 && testPassword.length < 6 ? "Password must be at least 6 characters long" : undefined}
-              />
-            </div>
-          </div>
-
-        </div>
-
-        {/* Loaders & Skeleton Skeletons */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-8">
-          
-          <div className="flex flex-col gap-6">
-            <h3 className="font-display text-2xl font-semibold text-emerald-rich dark:text-gold-subtle border-b border-emerald-rich/5 pb-2">
-              Gold Shimmer Skeletons
-            </h3>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-4">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="flex-1 flex flex-col gap-2">
-                  <Skeleton className="h-4 w-1/3" />
-                  <Skeleton className="h-3 w-1/2" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {featuredDestinations.map((dest) => (
+              <div key={dest.slug} className="group relative h-96 rounded-sm overflow-hidden border border-gold/15 shadow-lg flex flex-col justify-end p-6">
+                <div className="absolute inset-0 z-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={dest.image}
+                    alt={dest.name}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-emerald-deep via-emerald-deep/40 to-transparent" />
+                </div>
+                
+                <div className="relative z-10 flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] uppercase tracking-wider bg-gold/15 text-gold border border-gold/20 px-2 py-0.5 rounded-sm font-bold flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" /> Featured
+                    </span>
+                  </div>
+                  <h3 className="font-display text-2xl font-bold text-luxury-cream">{dest.name}</h3>
+                  <p className="text-xs text-luxury-cream/70 line-clamp-2 leading-relaxed">
+                    {dest.description}
+                  </p>
+                  <Link href={`/stays?destination=${encodeURIComponent(dest.name)}`} className="text-xs font-semibold text-gold hover:text-gold-light mt-2 flex items-center gap-1.5 self-start">
+                    Explore Stays <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
               </div>
-              <Skeleton className="h-28 w-full" />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6 justify-between">
-            <div>
-              <h3 className="font-display text-2xl font-semibold text-emerald-rich dark:text-gold-subtle border-b border-emerald-rich/5 pb-2">
-                Luxury Spinner Loader
-              </h3>
-              <Loader size="md" text="Loading exclusive experiences..." />
-            </div>
-
-            <div className="flex flex-col gap-4 bg-emerald-rich/5 dark:bg-emerald-accent/20 border border-gold/15 p-6 rounded-sm">
-              <h4 className="font-display text-lg font-bold text-emerald-rich dark:text-gold">Interactive Animated Modal</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Test the modal animation logic which uses Framer Motion spring curves and HSL backdrop-blur layers.
-              </p>
-              <Button variant="luxury" size="sm" onClick={() => setIsModalOpen(true)} className="self-start">
-                Open Dialog Modal
-              </Button>
-            </div>
+            ))}
           </div>
 
         </div>
       </section>
 
-      {/* Info Sections for Premium Quality */}
-      <section className="bg-emerald-rich py-24 text-luxury-cream">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <Compass className="h-8 w-8 text-gold" />
-            <h3 className="font-display text-xl font-semibold tracking-wide">Curated Stays</h3>
-            <p className="text-xs text-luxury-cream/70 leading-relaxed max-w-xs">
-              Every property undergoes a rigorous 150-point inspection covering aesthetics, location, privacy, and services.
-            </p>
-          </div>
-          <div className="flex flex-col items-center gap-4">
-            <ShieldCheck className="h-8 w-8 text-gold" />
-            <h3 className="font-display text-xl font-semibold tracking-wide">Secure Infrastructure</h3>
-            <p className="text-xs text-luxury-cream/70 leading-relaxed max-w-xs">
-              HTTP-only secure auth cookies, database-level encryption tokens, and role validations secure all operations.
-            </p>
-          </div>
-          <div className="flex flex-col items-center gap-4">
-            <Users className="h-8 w-8 text-gold" />
-            <h3 className="font-display text-xl font-semibold tracking-wide">Bespoke Concierge</h3>
-            <p className="text-xs text-luxury-cream/70 leading-relaxed max-w-xs">
-              Registered members receive access to a dedicated concierge agent to customize itineraries and coordinate flights.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Test Modal Component */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Exclusive Membership Benefits">
-        <div className="flex flex-col gap-4 text-emerald-rich dark:text-luxury-cream">
-          <p className="text-sm leading-relaxed">
-            Welcome to the Stayora private portal. Our members gain unprecedented access to premium vacation packages, private jet brokers, and early booking schedules.
+      {/* Brand Newsletter banner */}
+      <section className="py-24 bg-white dark:bg-emerald-deep border-b border-gold/10">
+        <div className="max-w-4xl mx-auto px-6 text-center flex flex-col items-center gap-6">
+          <span className="text-xs uppercase tracking-[0.25em] text-gold font-bold">Exclusive Invitations</span>
+          <h2 className="font-display text-3xl sm:text-4xl font-semibold text-emerald-rich dark:text-luxury-cream">
+            Join the Private Circle
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-md">
+            Subscribe to receive member-only travel deals, notifications of new estate reviews, and curated guides for world-class boutique tours.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-2">
-            <div className="border border-gold/15 p-4 bg-emerald-rich/5 rounded-sm flex flex-col gap-1">
-              <span className="text-[11px] font-bold text-gold uppercase tracking-wider">Premium Access</span>
-              <p className="text-xs text-muted-foreground">Book boutique penthouses 30 days prior to general public listings.</p>
-            </div>
-            <div className="border border-gold/15 p-4 bg-emerald-rich/5 rounded-sm flex flex-col gap-1">
-              <span className="text-[11px] font-bold text-gold uppercase tracking-wider">Concierge Integration</span>
-              <p className="text-xs text-muted-foreground">Direct booking link to professional personal travel hosts.</p>
-            </div>
+          <div className="w-full max-w-md border border-gold/15 p-4 rounded-sm bg-emerald-rich/[0.01]">
+            <Link href="/register">
+              <Button variant="luxury" size="lg" className="w-full">
+                Register as Member
+              </Button>
+            </Link>
           </div>
-          <Button variant="luxury" size="md" onClick={() => setIsModalOpen(false)} className="mt-4 self-end">
-            Accept Invitation
-          </Button>
         </div>
-      </Modal>
+      </section>
 
       <Footer />
     </div>

@@ -40,7 +40,7 @@ export default function RegisterPage() {
     const parsed = registerSchema.safeParse(formData);
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
-      parsed.error.errors.forEach((err) => {
+      parsed.error.issues.forEach((err) => {
         if (err.path[0]) {
           fieldErrors[err.path[0].toString()] = err.message;
         }
