@@ -97,3 +97,42 @@ body {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(6, 60, 48, 0.08);
 }
+
+/* 
+=========================================
+GLOBAL ELLIPSE-CURVED DESIGN UX OVERRIDES
+=========================================
+*/
+
+/* Buttons, single-line text inputs, and dropdown selectors are styled as perfect ellipses */
+button,
+input:not([type="checkbox"]):not([type="radio"]),
+select {
+  border-radius: 9999px !important;
+}
+
+/* Checkboxes are rounded slightly for checkbox UX */
+input[type="checkbox"] {
+  border-radius: 4px !important;
+}
+
+/* Multi-line inputs (textareas), cards, modals, image wraps, and badges are styled as highly rounded ellipses */
+textarea,
+.rounded-sm,
+.rounded-md,
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl,
+.rounded {
+  border-radius: 24px !important;
+}
+
+/* Ensure inner elements like images clip correctly inside their rounded parent cards */
+.overflow-hidden,
+.overflow-hidden img,
+.group img,
+.card img,
+.relative img {
+  border-radius: inherit;
+}

@@ -20,7 +20,7 @@ const propertySchema = new Schema(
     },
     type: {
       type: String,
-      enum: ["villa", "hotel", "resort", "apartment", "cabin", "mansion"],
+      enum: ["villa", "hotel", "resort", "apartment", "cabin", "mansion", "hostel", "guesthouse", "lodge", "spa"],
       required: [true, "Property type is required"],
     },
     status: {
@@ -94,14 +94,13 @@ const propertySchema = new Schema(
 );
 
 // Auto-generate slug from title before validation if not provided
-propertySchema.pre("validate", function (next) {
+propertySchema.pre("validate", function (this: any) {
   if (this.title && !this.slug) {
     this.slug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)+/g, "");
   }
-  next();
 });
 
 propertySchema.index({ city: 1, status: 1 });

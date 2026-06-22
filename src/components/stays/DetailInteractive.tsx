@@ -2,11 +2,13 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Star, Heart, Calendar, Users, Shield, ArrowRight, MessageSquarePlus } from "lucide-react";
+import { Star, Heart, Calendar, Users, Shield, ArrowRight, MessageSquarePlus, Compass, FileImage, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, formatCurrency } from "@/lib/utils";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
+import Modal from "../ui/Modal";
+import Link from "next/link";
 import WishlistToggle from "./WishlistToggle";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -40,6 +42,109 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
 }) => {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
+
+  // Booking Checkout states
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+  const [checkoutData, setCheckoutData] = useState<any>(null);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+
+  // UPI payment receipt submission states
+  const [checkoutUtrNumber, setCheckoutUtrNumber] = useState("");
+  const [checkoutReceiptBase64, setCheckoutReceiptBase64] = useState("");
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+  const [paymentSuccess, setPaymentSuccess] = useState("");
+
+  const handleRequestReservation = async () => {
+    if (!isAuthenticated) {
+      router.push(`/login?callbackUrl=${window.location.pathname}`);
+      return;
+    }
+
+    setIsBooking(true);
+    setBookingError("");
+
+    try {
+      const response = await fetch("/api/bookings/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          propertyId,
+          checkIn,
+          checkOut,
+          guests: guestsCount,
+        }),
+      });
+
+      const body = await response.json();
+
+      if (body.success && body.data) {
+        setCheckoutData(body.data);
+        setIsCheckoutModalOpen(true);
+      } else {
+        setBookingError(body.message || "Failed to initiate reservation.");
+      }
+    } catch (err) {
+      console.error(err);
+      setBookingError("Network error. Failed to initiate reservation request.");
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
+  const handleCheckoutPaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!checkoutData || !checkoutUtrNumber) return;
+
+    setIsSubmittingPayment(true);
+    setPaymentError("");
+    setPaymentSuccess("");
+
+    try {
+      const response = await fetch("/api/bookings/submit-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: checkoutData.bookingId,
+          upiTransactionId: checkoutUtrNumber,
+          upiReceiptScreenshot: checkoutReceiptBase64,
+        }),
+      });
+
+      const body = await response.json();
+
+      if (body.success) {
+        setPaymentSuccess("Your settlement receipt has been successfully logged! Redirecting to your dashboard...");
+        setTimeout(() => {
+          setIsCheckoutModalOpen(false);
+          router.push("/dashboard");
+        }, 2000);
+      } else {
+        setPaymentError(body.message || "Receipt registration failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      setPaymentError("An unexpected error occurred during submission.");
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  };
+
+  const handleCheckoutReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) {
+        setPaymentError("Receipt image size must not exceed 4MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCheckoutReceiptBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // 1. Gallery state
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -110,7 +215,8 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 font-sans">
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 font-sans">
       
       {/* Main details on left (Gallery & Reviews) */}
       <div className="lg:col-span-2 flex flex-col gap-10">
@@ -171,7 +277,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
           {isAuthenticated ? (
             <form onSubmit={handleReviewSubmit} className="bg-emerald-rich/5 border border-gold/15 p-6 rounded-sm flex flex-col gap-4">
               <span className="text-xs uppercase tracking-wider text-emerald-rich dark:text-gold-subtle font-bold flex items-center gap-1.5">
-                <MessageSquarePlus className="h-4 w-4" /> Share Your Experience
+                <MessageSquarePlus className="h-4 w-4" /> Indite Your Guest Chronicle
               </span>
 
               {reviewError && (
@@ -183,7 +289,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
 
               {/* Star Rating select */}
               <div className="flex items-center gap-3">
-                <span className="text-xs text-emerald-rich/70 dark:text-luxury-cream/70">Your Rating:</span>
+                <span className="text-xs text-emerald-rich/70 dark:text-luxury-cream/70">Experience Evaluation Rating:</span>
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -206,7 +312,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
               {/* Comment text */}
               <div className="flex flex-col gap-1">
                 <textarea
-                  placeholder="Share details of your stay, from the service quality to the estate views..."
+                  placeholder="Reflect upon your residence, details of hospitality, and overall estate ambiance..."
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   className="w-full min-h-[100px] p-3 text-xs bg-white dark:bg-emerald-deep border border-emerald-rich/10 rounded-sm focus:outline-none focus:border-gold"
@@ -221,7 +327,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
                 isLoading={isSubmittingReview}
                 className="self-end"
               >
-                Submit Review
+                Publish Chronicle
               </Button>
             </form>
           ) : (
@@ -402,7 +508,16 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
             </div>
           )}
 
-          <Button variant="luxury" size="lg" className="w-full mt-2" disabled={!checkIn || !checkOut}>
+          {bookingError && <p className="text-[10px] text-red-500 font-bold mt-1 text-center">{bookingError}</p>}
+
+          <Button
+            variant="luxury"
+            size="lg"
+            className="w-full mt-2"
+            disabled={!checkIn || !checkOut}
+            isLoading={isBooking}
+            onClick={handleRequestReservation}
+          >
             Request Reservation
           </Button>
 
@@ -424,6 +539,80 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
       </div>
 
     </div>
+
+      {/* UPI Checkout & Settlement Receipt submission modal */}
+      <Modal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => {
+          setIsCheckoutModalOpen(false);
+          router.push("/dashboard"); // Redirect to dashboard to check state
+        }}
+        title="Submit UPI Transaction Settlement Reference"
+      >
+        <form onSubmit={handleCheckoutPaymentSubmit} className="flex flex-col gap-5 text-left text-emerald-rich dark:text-luxury-cream">
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Kindly scan the authorized merchant UPI QR code using your preferred mobile banking application to settle your balance. Submit the 12-digit unique transaction identifier (UTR) below to request bank clearance.
+          </p>
+
+          {paymentError && <span className="text-xs text-red-500 font-semibold">{paymentError}</span>}
+          {paymentSuccess && <span className="text-xs text-gold font-semibold">{paymentSuccess}</span>}
+
+          {/* QR Scan helper */}
+          <div className="flex flex-col items-center justify-center p-4 bg-emerald-rich/5 border border-gold/15 rounded-sm max-w-xs mx-auto gap-3">
+            <div className="h-32 w-32 bg-white flex items-center justify-center border border-gold/25 p-2 rounded-sm relative">
+              <div className="absolute inset-2 border border-emerald-rich/10 border-dashed animate-pulse" />
+              <Compass className="h-10 w-10 text-emerald-rich/50" />
+            </div>
+            <div className="text-center">
+              <span className="text-[10px] font-bold text-gold-dark uppercase tracking-wider">Merchant VPA ID</span>
+              <p className="text-xs font-semibold text-emerald-rich dark:text-luxury-cream">
+                {checkoutData?.merchantVpa || "stayora@upi"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1 bg-emerald-rich/5 border border-gold/10 p-3 rounded-sm text-xs font-medium">
+            <div className="flex justify-between">
+              <span>Bespoke Total Price:</span>
+              <span className="font-bold text-gold">{formatCurrency(checkoutData?.totalPrice || 0)}</span>
+            </div>
+          </div>
+
+          <Input
+            id="checkout-upi-utr"
+            label="12-Digit Transaction Reference (UTR Number)"
+            type="text"
+            placeholder="e.g. 618491028472"
+            value={checkoutUtrNumber}
+            onChange={(e) => setCheckoutUtrNumber(e.target.value)}
+            required
+          />
+
+          <div className="flex flex-col gap-1.5 w-full">
+            <span className="text-xs font-medium uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Digital Transaction Receipt Screenshot (Optional)
+            </span>
+            <label className="flex flex-col items-center justify-center border border-dashed border-emerald-rich/20 rounded-sm p-6 bg-emerald-rich/[0.01] hover:bg-emerald-rich/5 transition-all cursor-pointer">
+              {checkoutReceiptBase64 ? (
+                <div className="flex items-center gap-2 text-xs font-semibold text-gold">
+                  <FileImage className="h-5 w-5" /> Screenshot loaded successfully
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
+                  <Upload className="h-6 w-6 text-gold" />
+                  <span>Choose screenshot image (JPEG/PNG, max 4MB)</span>
+                </div>
+              )}
+              <input type="file" accept="image/*" onChange={handleCheckoutReceiptChange} className="hidden" />
+            </label>
+          </div>
+
+          <Button variant="luxury" size="md" type="submit" isLoading={isSubmittingPayment} className="mt-2 self-end">
+            Submit Receipt for Bank Settlement
+          </Button>
+        </form>
+      </Modal>
+    </>
   );
 };
 

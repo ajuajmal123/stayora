@@ -61,9 +61,9 @@ export default async function DestinationsPage() {
       <section className="flex-1 max-w-7xl mx-auto px-6 py-20 w-full flex flex-col gap-12 text-left">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {destinationsWithCounts.map((dest) => (
-            <Card key={dest.slug} className="group flex flex-col h-[28rem] relative overflow-hidden">
+            <Card key={dest.slug} className="group flex flex-col h-[32rem] relative overflow-hidden">
               {/* Image Container */}
-              <div className="h-64 overflow-hidden relative">
+              <div className="h-76 overflow-hidden relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={dest.image}

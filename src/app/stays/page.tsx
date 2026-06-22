@@ -11,7 +11,7 @@ import WishlistToggle from "@/components/stays/WishlistToggle";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { MapPin, Star, BedDouble, Bath, Users, Heart } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { verifyAccessToken } from "@/lib/jwt";
 import { cookies } from "next/headers";
 
@@ -178,10 +178,10 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
               {properties.map((prop) => {
                 const isSaved = wishlistedIds.has(prop._id.toString());
                 return (
-                  <Card key={prop.slug} className="relative group">
+                  <Card key={prop.slug} className="relative group h-[34rem] flex flex-col justify-between">
                     
                     {/* Image gallery container */}
-                    <div className="relative h-64 overflow-hidden bg-luxury-sand">
+                    <div className="relative h-72 overflow-hidden bg-luxury-sand shrink-0">
                       <Link href={`/stays/${prop.slug}`} className="block h-full w-full">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img

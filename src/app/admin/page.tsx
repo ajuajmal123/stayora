@@ -8,10 +8,11 @@ import Property from "@/models/Property";
 import Destination from "@/models/Destination";
 import HeroBanner from "@/models/HeroBanner";
 import Newsletter from "@/models/Newsletter";
-import { redirect } from "next/navigation";
+import TourPackage from "@/models/TourPackage";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AdminClient from "@/components/admin/AdminClient";
+import AdminLogin from "@/components/admin/AdminLogin";
 
 export default async function AdminPage() {
   await connectToDatabase();
@@ -41,16 +42,33 @@ export default async function AdminPage() {
     }
   }
 
+  let showLogin = false;
+
   if (!userId || role !== "admin") {
-    redirect("/login");
+    showLogin = true;
   }
 
-  const adminUser = await User.findById(userId);
-  if (!adminUser || adminUser.isBlocked) {
-    redirect("/login");
+  if (!showLogin && userId) {
+    const adminUser = await User.findById(userId);
+    if (!adminUser || adminUser.isBlocked) {
+      showLogin = true;
+    }
   }
 
-  // Retrieve administration lists
+  // Render dedicated Admin Login component directly on the /admin route if not logged in
+  if (showLogin) {
+    return (
+      <div className="min-h-screen flex flex-col bg-luxury-cream dark:bg-emerald-deep text-luxury-black dark:text-luxury-cream transition-colors duration-500">
+        <Navbar />
+        <main className="flex-grow py-24 max-w-7xl mx-auto px-6 w-full flex items-center justify-center">
+          <AdminLogin />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Retrieve administration lists for dashboard console
   const properties = await Property.find().sort({ createdAt: -1 });
   const bookings = await Booking.find()
     .populate({
@@ -69,6 +87,7 @@ export default async function AdminPage() {
   const destinations = await Destination.find().sort({ name: 1 });
   const banners = await HeroBanner.find().sort({ order: 1, createdAt: -1 });
   const subscribers = await Newsletter.find().sort({ createdAt: -1 });
+  const packages = await TourPackage.find().sort({ createdAt: -1 });
 
   // Deep clone to plain objects to ensure safe client passing
   const serializedProperties = JSON.parse(JSON.stringify(properties));
@@ -77,6 +96,7 @@ export default async function AdminPage() {
   const serializedDestinations = JSON.parse(JSON.stringify(destinations));
   const serializedBanners = JSON.parse(JSON.stringify(banners));
   const serializedSubscribers = JSON.parse(JSON.stringify(subscribers));
+  const serializedPackages = JSON.parse(JSON.stringify(packages));
 
   return (
     <div className="min-h-screen flex flex-col bg-luxury-cream dark:bg-emerald-deep text-luxury-black dark:text-luxury-cream transition-colors duration-500">
@@ -89,6 +109,7 @@ export default async function AdminPage() {
           initialDestinations={serializedDestinations}
           initialBanners={serializedBanners}
           initialSubscribers={serializedSubscribers}
+          initialPackages={serializedPackages}
         />
       </main>
       <Footer />

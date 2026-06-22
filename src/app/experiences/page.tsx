@@ -5,47 +5,64 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import Button from "@/components/ui/Button";
 import { Compass, Clock, Award, ShieldCheck, MapPin } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { connectToDatabase } from "@/lib/mongodb";
+import TourPackage from "@/models/TourPackage";
 
 export const metadata = {
   title: "Bespoke Experiences | Stayora Curated Travel",
   description: "Enhance your stay with Stayora's exclusive luxury experiences, including private yacht charters, helicopter transfers, and Michelin-starred dining.",
 };
 
-export default function ExperiencesPage() {
-  const experiences = [
-    {
-      title: "Mediterranean Yacht Charter",
-      description: "Cruise the French Riviera or Amalfi Coast aboard a private 80ft luxury yacht. The day includes a dedicated skipper, chef-curated seafood lunch, champagne bar, and water sports equipment.",
-      duration: "Full Day (8 Hours)",
-      price: 4500,
-      location: "St. Tropez / Positano",
-      image: "https://images.unsplash.com/photo-1544085311-11a028465b03?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      title: "Alpine Helicopter Transfer",
-      description: "Skip the roads and glide over the Swiss Alps with a scenic helicopter flight to Zermatt, featuring panoramic Matterhorn views and direct landing access.",
-      duration: "Flight (45 Minutes)",
-      price: 1800,
-      location: "Zermatt, Switzerland",
-      image: "https://images.unsplash.com/photo-1508873699372-7aeab60b44ab?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      title: "Private Kaiseki Dining",
-      description: "A multi-course Japanese culinary masterpiece prepared in your private Ryokan kitchen by a Michelin-starred master chef, featuring seasonal Kyoto ingredients and sake pairing.",
-      duration: "Evening (3 Hours)",
-      price: 650,
-      location: "Kyoto, Japan",
-      image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      title: "DesertSlot Canyon Exploration",
-      description: "A private, geologist-led excursion into private slot canyons in southern Utah. Includes gourmet desert picnic, custom photography session, and sunset wine tasting.",
-      duration: "Half Day (5 Hours)",
-      price: 1200,
-      location: "Canyon Point, Utah",
-      image: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=800&q=80",
-    },
-  ];
+const defaultExperiences = [
+  {
+    title: "Mediterranean Yacht Charter",
+    description: "Cruise the French Riviera or Amalfi Coast aboard a private 80ft luxury yacht. The day includes a dedicated skipper, chef-curated seafood lunch, champagne bar, and water sports equipment.",
+    duration: "Full Day (8 Hours)",
+    price: 4500,
+    location: "St. Tropez / Positano",
+    image: "https://images.unsplash.com/photo-1544085311-11a028465b03?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    title: "Alpine Helicopter Transfer",
+    description: "Skip the roads and glide over the Swiss Alps with a scenic helicopter flight to Zermatt, featuring panoramic Matterhorn views and direct landing access.",
+    duration: "Flight (45 Minutes)",
+    price: 1800,
+    location: "Zermatt, Switzerland",
+    image: "https://images.unsplash.com/photo-1508873699372-7aeab60b44ab?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    title: "Private Kaiseki Dining",
+    description: "A multi-course Japanese culinary masterpiece prepared in your private Ryokan kitchen by a Michelin-starred master chef, featuring seasonal Kyoto ingredients and sake pairing.",
+    duration: "Evening (3 Hours)",
+    price: 650,
+    location: "Kyoto, Japan",
+    image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    title: "Desert Slot Canyon Exploration",
+    description: "A private, geologist-led excursion into private slot canyons in southern Utah. Includes gourmet desert picnic, custom photography session, and sunset wine tasting.",
+    duration: "Half Day (5 Hours)",
+    price: 1200,
+    location: "Canyon Point, Utah",
+    image: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=800&q=80",
+  },
+];
+
+export default async function ExperiencesPage() {
+  await connectToDatabase();
+  const dbPackages = await TourPackage.find().sort({ createdAt: -1 });
+
+  // Map database entries or fall back to high-res design items
+  const experiences = dbPackages.length > 0 
+    ? dbPackages.map((p) => ({
+        title: p.title,
+        description: p.description,
+        duration: p.duration,
+        price: p.price,
+        location: p.location,
+        image: p.image,
+      }))
+    : defaultExperiences;
 
   return (
     <div className="min-h-screen flex flex-col bg-luxury-cream dark:bg-emerald-deep font-sans">
@@ -72,9 +89,9 @@ export default function ExperiencesPage() {
       <section className="flex-1 max-w-7xl mx-auto px-6 py-20 w-full flex flex-col gap-12 text-left">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {experiences.map((exp) => (
-            <Card key={exp.title} className="group flex flex-col md:flex-row h-auto md:h-72 overflow-hidden">
+            <Card key={exp.title} className="group flex flex-col md:flex-row h-auto md:h-80 overflow-hidden border border-gold/10">
               {/* Image Panel */}
-              <div className="w-full md:w-2/5 h-48 md:h-auto overflow-hidden relative">
+              <div className="w-full md:w-2/5 h-56 md:h-auto overflow-hidden relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={exp.image}

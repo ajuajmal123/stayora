@@ -10,11 +10,16 @@ import { cn, getInitials } from "@/lib/utils";
 import Button from "../ui/Button";
 
 export const Navbar: React.FC = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, isInitialized, logout } = useAuth();
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Monitor scroll for transition effects
   useEffect(() => {
@@ -55,12 +60,8 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="h-9 w-9 rounded-full border border-gold/45 flex items-center justify-center bg-gold/5 shrink-0 group-hover:bg-gold/15 transition-all duration-300">
-            <span className="font-display text-gold text-lg font-bold italic tracking-tighter">S</span>
-          </div>
-          <span className="font-display text-2xl font-light text-luxury-cream tracking-wide group-hover:text-gold transition-colors ml-0.5">
-            Stay<span className="font-bold text-gold">ora</span>
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/image.png" alt="Stayora Logo" className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-102" />
         </Link>
 
         {/* Desktop Navigation */}
@@ -86,8 +87,10 @@ export const Navbar: React.FC = () => {
         </nav>
 
         {/* Desktop Auth Controls */}
-        <div className="hidden md:flex items-center gap-4">
-          {isAuthenticated && user ? (
+        <div className="hidden md:flex items-center gap-4 min-w-[80px] justify-end">
+          {!mounted || (!isInitialized && isLoading) ? (
+            <div className="h-9 w-9 rounded-full bg-gold/5 border border-gold/10 animate-pulse" />
+          ) : isAuthenticated && user ? (
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -109,9 +112,11 @@ export const Navbar: React.FC = () => {
                   <p className="text-xs uppercase tracking-wider text-luxury-cream/80 font-bold group-hover:text-gold transition-colors">
                     {user.name}
                   </p>
-                  <span className="text-[9px] uppercase tracking-widest text-gold font-medium">
-                    {user.role}
-                  </span>
+                  {user.role !== "user" && (
+                    <span className="text-[9px] uppercase tracking-widest text-gold font-medium">
+                      {user.role}
+                    </span>
+                  )}
                 </div>
               </button>
 
@@ -212,7 +217,9 @@ export const Navbar: React.FC = () => {
 
               <hr className="border-gold/10 my-1" />
 
-              {isAuthenticated && user ? (
+              {!mounted || (!isInitialized && isLoading) ? (
+                <div className="h-10 w-full bg-gold/5 border border-gold/10 animate-pulse rounded-sm" />
+              ) : isAuthenticated && user ? (
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full border border-gold/30 bg-emerald-accent flex items-center justify-center text-gold font-bold text-sm">
@@ -229,7 +236,9 @@ export const Navbar: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-luxury-cream uppercase">{user.name}</p>
-                      <span className="text-[10px] text-gold uppercase tracking-wider">{user.role}</span>
+                      {user.role !== "user" && (
+                        <span className="text-[10px] text-gold uppercase tracking-wider">{user.role}</span>
+                      )}
                     </div>
                   </div>
 

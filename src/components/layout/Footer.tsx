@@ -80,8 +80,9 @@ export const Footer: React.FC = () => {
         
         {/* Brand description */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <Link href="/" className="font-display text-3xl font-bold tracking-[0.25em] text-gold">
-            STAYORA
+          <Link href="/" className="flex items-center group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/image.png" alt="Stayora Logo" className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-102" />
           </Link>
           <p className="text-sm text-luxury-cream/70 leading-relaxed max-w-sm">
             Stayora redefines the art of travel. We connect discerning travelers with the world’s most exquisite, private properties and bespoke experiences, crafted for absolute comfort and luxury.

@@ -1,12 +1,14 @@
 import mongoose from "mongoose";
 import { env } from "./env";
 
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
+
 declare global {
   // eslint-disable-next-line no-var
-  var mongoose: {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
-  } | undefined;
+  var mongoose: MongooseCache | undefined;
 }
 
 const MONGODB_URI = env.MONGODB_URI;
@@ -15,11 +17,11 @@ if (!MONGODB_URI) {
   throw new Error("Please define the MONGODB_URI environment variable inside .env");
 }
 
-let cached = globalThis.mongoose;
-
-if (!cached) {
-  cached = globalThis.mongoose = { conn: null, promise: null };
+if (!globalThis.mongoose) {
+  globalThis.mongoose = { conn: null, promise: null };
 }
+
+const cached = globalThis.mongoose!;
 
 export async function connectToDatabase() {
   if (cached.conn) {

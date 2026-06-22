@@ -3,9 +3,12 @@ import { useAuthStore, AuthenticatedUser } from "@/store/authStore";
 import { LoginInput, RegisterInput } from "@/validations/auth";
 
 export function useAuth() {
-  const { user, isAuthenticated, isLoading, error, setUser, setLoading, setError, reset } = useAuthStore();
+  const { user, isAuthenticated, isLoading, isInitialized, error, setUser, setLoading, setError, reset } = useAuthStore();
 
   const checkSession = useCallback(async () => {
+    const state = useAuthStore.getState();
+    if (state.isLoading) return;
+
     setLoading(true);
     try {
       const response = await fetch("/api/auth/me", { method: "GET" });
@@ -21,6 +24,7 @@ export function useAuth() {
       setUser(null);
     } finally {
       setLoading(false);
+      useAuthStore.setState({ isInitialized: true });
     }
   }, [setUser, setLoading]);
 
@@ -99,15 +103,17 @@ export function useAuth() {
 
   // Run initial session check on mount
   useEffect(() => {
-    if (!isAuthenticated && user === null) {
+    const state = useAuthStore.getState();
+    if (!state.isInitialized && !state.isLoading) {
       checkSession();
     }
-  }, [checkSession, isAuthenticated, user]);
+  }, [checkSession]);
 
   return {
     user,
     isAuthenticated,
     isLoading,
+    isInitialized,
     error,
     login,
     register,

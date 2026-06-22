@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 import { env } from "./env";
-import { cookies } from "next-headers"; // Wait, in Next.js 15+, we can import cookies from "next/headers"
 
 // Let's import cookies properly
 import { cookies as getCookies } from "next/headers";

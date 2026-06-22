@@ -28,7 +28,9 @@ import {
   ListOrdered,
   Layers,
   Mail,
-  RefreshCw
+  RefreshCw,
+  Gift,
+  Compass as CompassIcon
 } from "lucide-react";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import Button from "../ui/Button";
@@ -42,6 +44,7 @@ interface AdminClientProps {
   initialDestinations: any[];
   initialBanners: any[];
   initialSubscribers: any[];
+  initialPackages: any[];
 }
 
 export const AdminClient: React.FC<AdminClientProps> = ({
@@ -50,10 +53,11 @@ export const AdminClient: React.FC<AdminClientProps> = ({
   initialUsers,
   initialDestinations,
   initialBanners,
-  initialSubscribers
+  initialSubscribers,
+  initialPackages
 }) => {
   const [activeTab, setActiveTab] = useState<"overview" | "properties" | "bookings" | "users" | "content">("overview");
-  const [contentSubTab, setContentSubTab] = useState<"destinations" | "banners" | "subscribers">("destinations");
+  const [contentSubTab, setContentSubTab] = useState<"destinations" | "banners" | "packages" | "subscribers">("destinations");
 
   // State arrays
   const [properties, setProperties] = useState(initialProperties);
@@ -62,6 +66,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
   const [destinations, setDestinations] = useState(initialDestinations);
   const [banners, setBanners] = useState(initialBanners);
   const [subscribers, setSubscribers] = useState(initialSubscribers);
+  const [packages, setPackages] = useState(initialPackages || []);
 
   // Analytics states
   const [analytics, setAnalytics] = useState<any>(null);
@@ -111,6 +116,20 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     order: "0"
   });
   const [isSavingBanner, setIsSavingBanner] = useState(false);
+
+  // Tour Package Form
+  const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
+  const [editingPackageId, setEditingPackageId] = useState<string | null>(null);
+  const [packageForm, setPackageForm] = useState({
+    title: "",
+    description: "",
+    duration: "",
+    price: "",
+    location: "",
+    image: "",
+    isFeatured: false
+  });
+  const [isSavingPackage, setIsSavingPackage] = useState(false);
 
   // Image zoom modal
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
@@ -461,6 +480,73 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       order: banner.order.toString()
     });
     setIsBannerModalOpen(true);
+  };
+
+  // Tour Packages Management
+  const handlePackageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingPackage(true);
+    try {
+      const url = "/api/admin/packages";
+      const method = editingPackageId ? "PUT" : "POST";
+      const payload = editingPackageId ? { ...packageForm, id: editingPackageId } : packageForm;
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const body = await res.json();
+      if (body.success && body.data) {
+        if (editingPackageId) {
+          setPackages((prev) => prev.map((p) => (p._id === editingPackageId ? body.data : p)));
+        } else {
+          setPackages((prev) => [body.data, ...prev]);
+        }
+        setIsPackageModalOpen(false);
+      } else {
+        alert(body.message || "Failed to save tour package");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingPackage(false);
+    }
+  };
+
+  const handleDeletePackage = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this travel package?")) return;
+    try {
+      const res = await fetch(`/api/admin/packages?id=${id}`, { method: "DELETE" });
+      const body = await res.json();
+      if (body.success) {
+        setPackages((prev) => prev.filter((p) => p._id !== id));
+      } else {
+        alert(body.message || "Failed to delete package");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openCreatePackage = () => {
+    setEditingPackageId(null);
+    setPackageForm({ title: "", description: "", duration: "", price: "", location: "", image: "", isFeatured: false });
+    setIsPackageModalOpen(true);
+  };
+
+  const openEditPackage = (pack: any) => {
+    setEditingPackageId(pack._id);
+    setPackageForm({
+      title: pack.title,
+      description: pack.description,
+      duration: pack.duration,
+      price: pack.price.toString(),
+      location: pack.location,
+      image: pack.image,
+      isFeatured: pack.isFeatured
+    });
+    setIsPackageModalOpen(true);
   };
 
   // Newsletter unsubscribe
@@ -1175,7 +1261,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
             </h2>
 
             {/* Sub-tab menu links */}
-            <div className="flex gap-4 border-b border-gold/10 pb-1">
+            <div className="flex flex-wrap gap-4 border-b border-gold/10 pb-1">
               <button
                 onClick={() => setContentSubTab("destinations")}
                 className={cn(
@@ -1185,7 +1271,18 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                     : "border-transparent text-muted-foreground hover:text-emerald-rich dark:hover:text-luxury-cream"
                 )}
               >
-                Destinations Collection
+                Destinations
+              </button>
+              <button
+                onClick={() => setContentSubTab("packages")}
+                className={cn(
+                  "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors",
+                  contentSubTab === "packages"
+                    ? "border-gold text-gold"
+                    : "border-transparent text-muted-foreground hover:text-emerald-rich dark:hover:text-luxury-cream"
+                )}
+              >
+                Tour Packages
               </button>
               <button
                 onClick={() => setContentSubTab("banners")}
@@ -1263,7 +1360,66 @@ export const AdminClient: React.FC<AdminClientProps> = ({
               </div>
             )}
 
-            {/* Sub-tab 2: Hero Banners */}
+            {/* Sub-tab 2: Tour Packages */}
+            {contentSubTab === "packages" && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    Elite Tour Packages & Experiences
+                  </h3>
+                  <Button variant="luxury" size="sm" className="h-8 text-[10px] px-3 font-bold" onClick={openCreatePackage}>
+                    <Plus className="h-3 w-3 mr-1" /> Add Tour Package
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {packages.map((p) => (
+                    <div key={p._id} className="border border-gold/15 rounded-sm overflow-hidden flex flex-col justify-between bg-emerald-rich/5">
+                      <div className="h-36 bg-luxury-sand relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.image} alt={p.title} className="h-full w-full object-cover" />
+                        {p.isFeatured && (
+                          <span className="absolute top-2 left-2 bg-gold text-emerald-deep font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-sm">
+                            Featured
+                          </span>
+                        )}
+                        <span className="absolute bottom-2 right-2 bg-emerald-deep/80 text-gold font-bold text-[10px] px-2 py-0.5 rounded-sm border border-gold/20">
+                          {formatCurrency(p.price)}
+                        </span>
+                      </div>
+                      <div className="p-4 flex-grow text-left flex flex-col gap-1">
+                        <span className="font-display font-bold text-lg text-emerald-rich dark:text-luxury-cream truncate block">
+                          {p.title}
+                        </span>
+                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-semibold">
+                          <span>📍 {p.location}</span>
+                          <span>⏱️ {p.duration}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-2 leading-relaxed font-light">
+                          {p.description}
+                        </p>
+                      </div>
+                      <div className="p-3 border-t border-gold/10 bg-white dark:bg-emerald-deep/40 flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openEditPackage(p)}
+                          className="p-1.5 border border-gold/15 text-gold rounded-sm hover:bg-gold/10"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeletePackage(p._id)}
+                          className="p-1.5 border border-red-500/15 text-red-500 rounded-sm hover:bg-red-500/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sub-tab 3: Hero Banners */}
             {contentSubTab === "banners" && (
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
@@ -1322,7 +1478,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
               </div>
             )}
 
-            {/* Sub-tab 3: Subscribers */}
+            {/* Sub-tab 4: Subscribers */}
             {contentSubTab === "subscribers" && (
               <div className="flex flex-col gap-4">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
@@ -1369,20 +1525,21 @@ export const AdminClient: React.FC<AdminClientProps> = ({
         )}
       </div>
 
-      {/* MODAL 1: CREATE / EDIT PROPERTY */}
+      {/* MODAL 1: CREATE / EDIT PROPERTY - Transformed with Concierge Professional Language */}
       <Modal
         isOpen={isPropertyModalOpen}
         onClose={() => setIsPropertyModalOpen(false)}
-        title={editingPropertyId ? "Edit Luxury Estate" : "Add Luxury Estate Listing"}
+        title={editingPropertyId ? "Edit Exclusive Estate Profile" : "Initiate Elite Retreat Listing"}
       >
         <form onSubmit={handlePropertySubmit} className="flex flex-col gap-4 text-left">
           {propertyError && <span className="text-xs text-red-500 font-bold">{propertyError}</span>}
 
           <Input
             id="estate-title"
-            label="Estate Title"
+            label="Exclusive Estate Title"
             type="text"
             required
+            placeholder="e.g. The Grand Horizon Sanctuary"
             value={propertyForm.title}
             onChange={(e) => setPropertyForm((prev) => ({ ...prev, title: e.target.value }))}
           />
@@ -1390,7 +1547,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 w-full">
               <label htmlFor="estate-type" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-                Estate Type
+                Property Type & Classification
               </label>
               <select
                 id="estate-type"
@@ -1398,18 +1555,22 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                 value={propertyForm.type}
                 onChange={(e) => setPropertyForm((prev) => ({ ...prev, type: e.target.value }))}
               >
-                <option value="villa">Villa</option>
-                <option value="hotel">Hotel</option>
-                <option value="resort">Resort</option>
-                <option value="apartment">Apartment</option>
-                <option value="cabin">Cabin</option>
-                <option value="mansion">Mansion</option>
+                <option value="villa">Premium Villa</option>
+                <option value="hotel">Boutique Hotel</option>
+                <option value="resort">Luxury Resort</option>
+                <option value="apartment">Elite Apartment</option>
+                <option value="cabin">Rustic Cabin</option>
+                <option value="mansion">Luxury Mansion</option>
+                <option value="hostel">Boutique Hostel</option>
+                <option value="guesthouse">Heritage Guest House</option>
+                <option value="lodge">Premium Lodge</option>
+                <option value="spa">Wellness Spa & Health Center</option>
               </select>
             </div>
 
             <div className="flex flex-col gap-1.5 w-full">
               <label htmlFor="estate-status" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-                Publish State
+                Inventory Publish Status
               </label>
               <select
                 id="estate-status"
@@ -1417,9 +1578,9 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                 value={propertyForm.status}
                 onChange={(e) => setPropertyForm((prev) => ({ ...prev, status: e.target.value }))}
               >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
+                <option value="draft">Review / Draft State</option>
+                <option value="published">Active / Published State</option>
+                <option value="archived">Retired / Archived State</option>
               </select>
             </div>
           </div>
@@ -1427,19 +1588,21 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <Input
               id="estate-price"
-              label="Price Per Night (₹ INR)"
+              label="Bespoke Fare Rate per Night (₹ INR)"
               type="number"
               required
               min="0"
+              placeholder="e.g. 15000"
               value={propertyForm.pricePerNight}
               onChange={(e) => setPropertyForm((prev) => ({ ...prev, pricePerNight: e.target.value }))}
             />
             <Input
               id="estate-maxguests"
-              label="Maximum Guests Limit"
+              label="Maximum Guest Occupancy Limit"
               type="number"
               required
               min="1"
+              placeholder="e.g. 6"
               value={propertyForm.maxGuests}
               onChange={(e) => setPropertyForm((prev) => ({ ...prev, maxGuests: e.target.value }))}
             />
@@ -1448,7 +1611,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <Input
               id="estate-bedrooms"
-              label="Bedrooms Count"
+              label="Bedrooms Capacity"
               type="number"
               required
               min="0"
@@ -1457,7 +1620,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
             />
             <Input
               id="estate-bathrooms"
-              label="Bathrooms Count"
+              label="Bathrooms Capacity"
               type="number"
               required
               min="0"
@@ -1468,9 +1631,10 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
           <Input
             id="estate-address"
-            label="Street Address"
+            label="Street Location Details"
             type="text"
             required
+            placeholder="e.g. 12 Cliffside Dr, near Lighthouse"
             value={propertyForm.address}
             onChange={(e) => setPropertyForm((prev) => ({ ...prev, address: e.target.value }))}
           />
@@ -1496,21 +1660,22 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
           <Input
             id="estate-amenities"
-            label="Amenities (comma separated)"
+            label="Luxury Amenities & Inclusions (comma separated)"
             type="text"
-            placeholder="e.g. Pool, WiFi, Concierge, Ocean View"
+            placeholder="e.g. Infinity Pool, Private Chef, Heliport, Steam Room"
             value={propertyForm.amenities}
             onChange={(e) => setPropertyForm((prev) => ({ ...prev, amenities: e.target.value }))}
           />
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="estate-description" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-              Estate Description
+              Bespoke Estate Description
             </label>
             <textarea
               id="estate-description"
               required
               rows={4}
+              placeholder="Detail the location benefits, history, views, and exclusive services of the estate..."
               className="w-full p-4 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream"
               value={propertyForm.description}
               onChange={(e) => setPropertyForm((prev) => ({ ...prev, description: e.target.value }))}
@@ -1520,7 +1685,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           {/* Image Upload Gallery */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-              Estate Photo Gallery
+              Select High-Res Promotional Photos
             </span>
             <div className="grid grid-cols-4 gap-3">
               {propertyForm.images.map((img, idx) => (
@@ -1537,7 +1702,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                     }
                     className="absolute inset-0 bg-red-500/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold uppercase transition-opacity"
                   >
-                    Delete
+                    Remove
                   </button>
                 </div>
               ))}
@@ -1550,7 +1715,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           </div>
 
           <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingProperty}>
-            {editingPropertyId ? "Save Changes" : "Create Estate"}
+            {editingPropertyId ? "Commit Changes" : "Publish Estate Listing"}
           </Button>
         </form>
       </Modal>
@@ -1559,26 +1724,28 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       <Modal
         isOpen={isDestModalOpen}
         onClose={() => setIsDestModalOpen(false)}
-        title={editingDestId ? "Edit Destination" : "Add Destination"}
+        title={editingDestId ? "Edit Destination Profile" : "Register Luxury Destination"}
       >
         <form onSubmit={handleDestSubmit} className="flex flex-col gap-4 text-left">
           <Input
             id="dest-name"
-            label="Destination Name"
+            label="Destination City / Location Name"
             type="text"
             required
+            placeholder="e.g. Amalfi Coast"
             value={destForm.name}
             onChange={(e) => setDestForm((prev) => ({ ...prev, name: e.target.value }))}
           />
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="dest-description" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-              Description
+              Destination Location Summary
             </label>
             <textarea
               id="dest-description"
               required
               rows={3}
+              placeholder="Describe the aesthetic, local attractions, and geographical beauty..."
               className="w-full p-4 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream"
               value={destForm.description}
               onChange={(e) => setDestForm((prev) => ({ ...prev, description: e.target.value }))}
@@ -1588,7 +1755,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           {/* Photo upload */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-              Destination Image
+              Select Cover Promotional Image
             </span>
             {destForm.image && (
               <div className="h-28 w-44 rounded-sm overflow-hidden border border-gold/15 relative">
@@ -1598,7 +1765,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
             )}
             <label className="flex items-center gap-2 border border-dashed border-emerald-rich/20 rounded-sm p-4 bg-emerald-rich/[0.01] cursor-pointer hover:bg-emerald-rich/5">
               <Upload className="h-4 w-4 text-gold" />
-              <span className="text-xs text-muted-foreground">Select Photo image (JPEG/PNG)</span>
+              <span className="text-xs text-muted-foreground">Select Cover Photo (JPEG/PNG)</span>
               <input type="file" accept="image/*" className="hidden" onChange={(e) => handleSingleImageChange(e, setDestForm)} />
             </label>
           </div>
@@ -1617,43 +1784,144 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           </div>
 
           <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingDest}>
-            {editingDestId ? "Save Changes" : "Create Destination"}
+            {editingDestId ? "Commit Changes" : "Register Destination"}
           </Button>
         </form>
       </Modal>
 
-      {/* MODAL 3: CREATE / EDIT HERO BANNER */}
+      {/* MODAL 3: CREATE / EDIT TOUR PACKAGE */}
+      <Modal
+        isOpen={isPackageModalOpen}
+        onClose={() => setIsPackageModalOpen(false)}
+        title={editingPackageId ? "Edit Bespoke Tour Itinerary" : "Configure New Travel Excursion"}
+      >
+        <form onSubmit={handlePackageSubmit} className="flex flex-col gap-4 text-left">
+          <Input
+            id="pack-title"
+            label="Bespoke Excursion Title"
+            type="text"
+            required
+            placeholder="e.g. Private Yacht Charter & Shore Dining"
+            value={packageForm.title}
+            onChange={(e) => setPackageForm((prev) => ({ ...prev, title: e.target.value }))}
+          />
+          <Input
+            id="pack-location"
+            label="Excursion Location / Coordinates"
+            type="text"
+            required
+            placeholder="e.g. Amalfi Coast / Positano, Italy"
+            value={packageForm.location}
+            onChange={(e) => setPackageForm((prev) => ({ ...prev, location: e.target.value }))}
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              id="pack-price"
+              label="Package Cost / Pricing (₹ INR)"
+              type="number"
+              required
+              placeholder="e.g. 45000"
+              value={packageForm.price}
+              onChange={(e) => setPackageForm((prev) => ({ ...prev, price: e.target.value }))}
+            />
+            <Input
+              id="pack-duration"
+              label="Trip Excursion Duration"
+              type="text"
+              required
+              placeholder="e.g. 8 Hours / Day Tour"
+              value={packageForm.duration}
+              onChange={(e) => setPackageForm((prev) => ({ ...prev, duration: e.target.value }))}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="pack-description" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Luxury Tour Description
+            </label>
+            <textarea
+              id="pack-description"
+              required
+              rows={3}
+              placeholder="Describe the package inclusions, trip itinerary, host assistance details..."
+              className="w-full p-4 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream"
+              value={packageForm.description}
+              onChange={(e) => setPackageForm((prev) => ({ ...prev, description: e.target.value }))}
+            />
+          </div>
+
+          {/* Photo upload */}
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Select Excursion Promotional Image
+            </span>
+            {packageForm.image && (
+              <div className="h-28 w-44 rounded-sm overflow-hidden border border-gold/15 relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={packageForm.image} alt="preview" className="h-full w-full object-cover" />
+              </div>
+            )}
+            <label className="flex items-center gap-2 border border-dashed border-emerald-rich/20 rounded-sm p-4 bg-emerald-rich/[0.01] cursor-pointer hover:bg-emerald-rich/5">
+              <Upload className="h-4 w-4 text-gold" />
+              <span className="text-xs text-muted-foreground">Select Excursion Photo (JPEG/PNG)</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleSingleImageChange(e, setPackageForm)} />
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              id="pack-featured"
+              checked={packageForm.isFeatured}
+              onChange={(e) => setPackageForm((prev) => ({ ...prev, isFeatured: e.target.checked }))}
+              className="h-4 w-4 rounded-sm border-gold/20"
+            />
+            <label htmlFor="pack-featured" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-luxury-cream">
+              Feature on Experiences page
+            </label>
+          </div>
+
+          <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingPackage}>
+            {editingPackageId ? "Commit Changes" : "Launch Tour Package"}
+          </Button>
+        </form>
+      </Modal>
+
+      {/* MODAL 4: CREATE / EDIT HERO BANNER */}
       <Modal
         isOpen={isBannerModalOpen}
         onClose={() => setIsBannerModalOpen(false)}
-        title={editingBannerId ? "Edit Hero Banner" : "Add Hero Banner"}
+        title={editingBannerId ? "Edit Hero Slide Banner" : "Configure Hero Slide Banner"}
       >
         <form onSubmit={handleBannerSubmit} className="flex flex-col gap-4 text-left">
           <Input
             id="banner-title"
-            label="Banner Title"
+            label="Banner Primary Heading"
             type="text"
             required
+            placeholder="e.g. Refining the Art of Luxury Stays"
             value={bannerForm.title}
             onChange={(e) => setBannerForm((prev) => ({ ...prev, title: e.target.value }))}
           />
           <Input
             id="banner-subtitle"
-            label="Subtitle / Description"
+            label="Secondary Sub-Heading / Caption"
             type="text"
+            placeholder="e.g. Discover private estates curated for discerning travelers..."
             value={bannerForm.subtitle}
             onChange={(e) => setBannerForm((prev) => ({ ...prev, subtitle: e.target.value }))}
           />
           <Input
             id="banner-link"
-            label="Redirect URL Link"
+            label="Redirect URL Redirect Link"
             type="text"
+            placeholder="/stays"
             value={bannerForm.link}
             onChange={(e) => setBannerForm((prev) => ({ ...prev, link: e.target.value }))}
           />
           <Input
             id="banner-order"
-            label="Order Index Position"
+            label="Slide Ordering Rank Position"
             type="number"
             value={bannerForm.order}
             onChange={(e) => setBannerForm((prev) => ({ ...prev, order: e.target.value }))}
@@ -1662,7 +1930,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           {/* Photo upload */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-              Banner Background Image
+              Select Slide Background Image
             </span>
             {bannerForm.image && (
               <div className="h-28 w-52 rounded-sm overflow-hidden border border-gold/15 relative">
@@ -1672,7 +1940,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
             )}
             <label className="flex items-center gap-2 border border-dashed border-emerald-rich/20 rounded-sm p-4 bg-emerald-rich/[0.01] cursor-pointer hover:bg-emerald-rich/5">
               <Upload className="h-4 w-4 text-gold" />
-              <span className="text-xs text-muted-foreground">Select Background image (JPEG/PNG)</span>
+              <span className="text-xs text-muted-foreground">Select Slide Background Photo (JPEG/PNG)</span>
               <input type="file" accept="image/*" className="hidden" onChange={(e) => handleSingleImageChange(e, setBannerForm)} />
             </label>
           </div>
@@ -1686,17 +1954,17 @@ export const AdminClient: React.FC<AdminClientProps> = ({
               className="h-4 w-4 rounded-sm border-gold/20"
             />
             <label htmlFor="banner-active" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-luxury-cream">
-              Set Active on homepage slider
+              Set active on homepage slider
             </label>
           </div>
 
           <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingBanner}>
-            {editingBannerId ? "Save Changes" : "Create Banner"}
+            {editingBannerId ? "Commit Changes" : "Register Hero Slide"}
           </Button>
         </form>
       </Modal>
 
-      {/* MODAL 4: IMAGE ZOOM MODAL */}
+      {/* MODAL 5: IMAGE ZOOM MODAL */}
       <Modal isOpen={!!zoomedImage} onClose={() => setZoomedImage(null)} title="Transaction Receipt Screenshot Preview">
         <div className="max-w-2xl max-h-[80vh] flex items-center justify-center p-2">
           {zoomedImage && (

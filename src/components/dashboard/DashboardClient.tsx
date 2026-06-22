@@ -68,6 +68,20 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
   const { setUser } = useAuth();
   const [activeTab, setActiveTab] = useState<"profile" | "bookings" | "wishlist" | "reviews">("profile");
 
+  // Hydrate client-side store with server-verified traveler credentials on mount
+  React.useEffect(() => {
+    if (initialUser) {
+      setUser({
+        id: initialUser.id,
+        name: initialUser.name,
+        email: initialUser.email,
+        role: initialUser.role as "admin" | "agent" | "user",
+        avatar: initialUser.avatar,
+        phoneNumber: initialUser.phoneNumber,
+      });
+    }
+  }, [initialUser, setUser]);
+
   // Profile states
   const [profileData, setProfileData] = useState({
     name: initialUser.name,
@@ -380,7 +394,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
 
             <Input
               id="p-name"
-              label="Full Name"
+              label="Distinguished Guest Name"
               type="text"
               name="name"
               value={profileData.name}
@@ -390,7 +404,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
 
             <Input
               id="p-email"
-              label="Email Address"
+              label="Preferred Communication Email"
               type="email"
               name="email"
               value={profileData.email}
@@ -400,7 +414,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
 
             <Input
               id="p-phone"
-              label="Phone Number"
+              label="Primary Contact Line"
               type="tel"
               name="phoneNumber"
               value={profileData.phoneNumber}
@@ -409,7 +423,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
             />
 
             <Button variant="primary" type="submit" isLoading={isUpdatingProfile} className="self-start mt-2">
-              Save Changes
+              Save Profile Details
             </Button>
           </form>
         )}
@@ -491,7 +505,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
                               className="py-1 px-4 h-8"
                               onClick={() => setSelectedBookingForUpi(booking._id)}
                             >
-                              Submit UPI Receipt
+                              Register Transaction UTR
                             </Button>
                           )}
 
@@ -655,11 +669,11 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
           setUpiError("");
           setUpiSuccess("");
         }}
-        title="Submit UPI Payment Receipt"
+        title="Submit UPI Transaction Settlement Reference"
       >
         <form onSubmit={handleUpiSubmit} className="flex flex-col gap-5 text-left text-emerald-rich dark:text-luxury-cream">
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Please make your payment by scanning our merchant UPI QR Code using GPay, PhonePe, or Paytm, and submit your Transaction Reference ID (UTR) below for manual bank clearance.
+            Kindly scan the authorized merchant UPI QR code using your preferred mobile banking application to settle your balance. Submit the 12-digit unique transaction identifier (UTR) below to request bank clearance.
           </p>
 
           {upiError && <span className="text-xs text-red-500 font-semibold">{upiError}</span>}
@@ -681,7 +695,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
 
           <Input
             id="upi-utr"
-            label="UPI Transaction ID / UTR Number"
+            label="12-Digit Transaction Reference (UTR Number)"
             type="text"
             placeholder="e.g. 618491028472 (12-digit number)"
             value={utrNumber}
@@ -691,7 +705,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
 
           <div className="flex flex-col gap-1.5 w-full">
             <span className="text-xs font-medium uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-              Upload Screenshot Receipt (Optional)
+              Digital Transaction Receipt Screenshot (Optional)
             </span>
             <label className="flex flex-col items-center justify-center border border-dashed border-emerald-rich/20 rounded-sm p-6 bg-emerald-rich/[0.01] hover:bg-emerald-rich/5 transition-all cursor-pointer">
               {receiptBase64 ? (
@@ -709,7 +723,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
           </div>
 
           <Button variant="luxury" size="md" type="submit" isLoading={isSubmittingUpi} className="mt-2 self-end">
-            Verify Transaction
+            Submit Receipt for Bank Settlement
           </Button>
         </form>
       </Modal>

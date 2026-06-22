@@ -13,6 +13,7 @@ interface AuthState {
   user: AuthenticatedUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean;
   error: string | null;
   
   setUser: (user: AuthenticatedUser | null) => void;
@@ -24,11 +25,12 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
-  isLoading: true, // starts loading while session check is run
+  isLoading: false,
+  isInitialized: false,
   error: null,
 
-  setUser: (user) => set({ user, isAuthenticated: !!user, error: null }),
+  setUser: (user) => set({ user, isAuthenticated: !!user, error: null, isInitialized: true }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
-  reset: () => set({ user: null, isAuthenticated: false, error: null }),
+  reset: () => set({ user: null, isAuthenticated: false, error: null, isInitialized: true }),
 }));

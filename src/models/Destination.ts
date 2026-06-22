@@ -37,14 +37,13 @@ const destinationSchema = new Schema(
   }
 );
 
-destinationSchema.pre("validate", function (next) {
+destinationSchema.pre("validate", function (this: any) {
   if (this.name && !this.slug) {
     this.slug = this.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)+/g, "");
   }
-  next();
 });
 
 const Destination = mongoose.models.Destination || mongoose.model("Destination", destinationSchema);

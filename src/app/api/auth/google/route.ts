@@ -1,64 +1,25 @@
-import { NextRequest } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
-import User from "@/models/User";
-import { ApiResponse } from "@/lib/api-response";
-import { setAuthCookies } from "@/lib/jwt";
-import bcrypt from "bcryptjs";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    await connectToDatabase();
+    const { searchParams } = new URL(req.url);
+    const requestedRole = searchParams.get("role") === "admin" ? "admin" : "user";
     
-    // Support picking user vs admin role for mock testing
-    const body = await req.json().catch(() => ({}));
-    const requestedRole = body.role === "admin" ? "admin" : "user";
-    
-    const email = requestedRole === "admin" ? "admin@stayora.com" : "googleuser@stayora.com";
-    const name = requestedRole === "admin" ? "Stayora Administrator" : "Alexander Mercer";
-    const avatar = requestedRole === "admin" 
-      ? "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-      : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80";
-
-    let user = await User.findOne({ email });
-    
-    if (!user) {
-      const hashedPassword = await bcrypt.hash("google_auth_mock_password_stayora", 10);
-      user = new User({
-        name,
-        email,
-        password: hashedPassword,
-        role: requestedRole,
-        avatar,
-        isVerified: true,
-      });
-      await user.save();
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      console.error("Missing GOOGLE_CLIENT_ID in environment configuration.");
+      return NextResponse.redirect(new URL("/login?error=Google+Client+ID+not+configured", req.url));
     }
 
-    if (user.isBlocked) {
-      return ApiResponse.error("Your account has been suspended by an administrator.");
-    }
-
-    const tokenPayload = {
-      id: user._id.toString(),
-      email: user.email,
-      role: user.role as "admin" | "agent" | "user",
-    };
-
-    const { refreshToken } = await setAuthCookies(tokenPayload);
-    user.refreshTokens.push(refreshToken);
-    await user.save();
-
-    const userResponse = {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-      phoneNumber: user.phoneNumber,
-    };
-
-    return ApiResponse.success(userResponse, "Google login successful");
+    const redirectUri = `${req.nextUrl.origin}/api/auth/google/callback`;
+    const scope = "openid email profile";
+    const state = requestedRole;
+    
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${state}`;
+    
+    return NextResponse.redirect(authUrl);
   } catch (error) {
-    return ApiResponse.error(error);
+    console.error("Google authentication redirect initialization error:", error);
+    return NextResponse.redirect(new URL("/login?error=Failed+to+initialize+Google+sign+in", req.url));
   }
 }

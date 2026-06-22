@@ -12,35 +12,23 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { setUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
 
   // Retrieve optional role parameter from query string (?role=admin or defaults to user)
   const requestedRole = searchParams.get("role") === "admin" ? "admin" : "user";
+  const queryError = searchParams.get("error");
+  const [error, setError] = useState("");
 
-  const handleGoogleLogin = async () => {
+  React.useEffect(() => {
+    if (queryError) {
+      setError(queryError);
+    }
+  }, [queryError]);
+
+  const handleGoogleLogin = () => {
     setIsLoading(true);
     setError("");
-
-    try {
-      const response = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: requestedRole }),
-      });
-      const body = await response.json();
-
-      if (body.success && body.data) {
-        setUser(body.data);
-        router.push("/");
-        router.refresh();
-      } else {
-        setError(body.message || "Google authentication failed");
-      }
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred connecting to Google");
-    } finally {
-      setIsLoading(false);
-    }
+    // Redirect browser to the API endpoint which starts Google OAuth 2.0 flow
+    window.location.href = `/api/auth/google?role=${requestedRole}`;
   };
 
   return (
@@ -61,8 +49,9 @@ export default function LoginPage() {
 
         {/* Middle: Brand Monogram */}
         <div className="flex flex-col items-center gap-3 my-auto py-4">
-          <div className="h-14 w-14 rounded-full border border-gold/45 flex items-center justify-center bg-gold/5 shrink-0 shadow-md">
-            <span className="font-display text-gold text-2xl font-bold italic tracking-tighter">S</span>
+          <div className="shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/image.png" alt="Stayora Logo" className="h-12 w-auto mx-auto object-contain" />
           </div>
           <div className="flex flex-col gap-1">
             <h1 className="font-display text-3xl font-light text-emerald-rich dark:text-white leading-tight">
