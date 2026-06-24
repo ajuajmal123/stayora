@@ -48,7 +48,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       throw new ValidationError("Invalid Property ID");
     }
 
-    const property = await Property.findById(id);
+    const property = await Property.findById(id).populate("destination");
     if (!property) {
       throw new NotFoundError("Property not found");
     }
@@ -89,6 +89,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       bathrooms,
       maxGuests,
       images,
+      destination,
     } = body;
 
     // Process images
@@ -124,6 +125,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     if (bathrooms !== undefined) property.bathrooms = bathrooms;
     if (maxGuests !== undefined) property.maxGuests = maxGuests;
     if (images !== undefined) property.images = uploadedImages;
+    if (destination !== undefined) property.destination = destination || null;
 
     // Ensure slug regenerates if title has changed and slug wasn't manually passed
     if (title !== undefined && body.slug === undefined) {

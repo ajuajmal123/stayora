@@ -18,7 +18,7 @@
 
   /* Typography */
   --font-display: var(--font-cormorant), Georgia, serif;
-  --font-sans: var(--font-outfit), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-manrope), system-ui, -apple-system, sans-serif;
   
   /* Shared transitions */
   --transition-luxury: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);

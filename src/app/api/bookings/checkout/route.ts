@@ -94,10 +94,16 @@ export async function POST(req: NextRequest) {
     // In India/UPI context, we can assume a conversion or map pricing (we'll keep direct amount for display)
     const totalPrice = baseTotal;
 
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new UnauthorizedError("User profile not found");
+    }
+
     // 4. Create the booking
     const booking = await Booking.create({
       property: propertyId,
       user: userId,
+      email: user.email,
       checkIn: checkInDate,
       checkOut: checkOutDate,
       totalPrice: totalPrice,

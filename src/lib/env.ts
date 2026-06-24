@@ -11,6 +11,8 @@ const envSchema = z.object({
   RAZORPAY_KEY_SECRET: z.string().default("dummysecret456"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  NEXTAUTH_URL: z.string().url().default("http://localhost:3000"),
+  NEXTAUTH_SECRET: z.string().min(8, "NEXTAUTH_SECRET must be at least 8 characters long"),
 });
 
 // Since Next.js can execute this on both server and client,
@@ -31,7 +33,9 @@ if (isServer) {
     RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || "rzp_test_dummykeyid123",
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || "dummysecret456",
     NODE_ENV: process.env.NODE_ENV,
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : undefined,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : undefined),
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || "http://localhost:3000",
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   });
 
   if (!parsed.success) {
@@ -53,6 +57,8 @@ if (isServer) {
     RAZORPAY_KEY_SECRET: "",
     NODE_ENV: (process.env.NODE_ENV as any) || "development",
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    NEXTAUTH_URL: "http://localhost:3000",
+    NEXTAUTH_SECRET: "",
   };
 }
 

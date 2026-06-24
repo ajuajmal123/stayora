@@ -8,6 +8,7 @@ import { UnauthorizedError, ForbiddenError, ValidationError, NotFoundError } fro
 import { verifyAccessToken } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
+import { sendBookingConfirmationEmail } from "@/lib/mail";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -79,12 +80,27 @@ export async function PUT(req: NextRequest) {
       if (!["pending", "confirmed", "cancelled", "completed"].includes(status)) {
         throw new ValidationError("Invalid booking status value");
       }
+      
+      const previousStatus = booking.status;
       booking.status = status;
       
       // Auto-refund paid bookings if they get cancelled
       if (status === "cancelled") {
         if (booking.paymentStatus === "paid") {
           booking.paymentStatus = "refunded";
+        }
+      }
+
+      // Send confirmation email when moving to 'confirmed'
+      if (status === "confirmed" && previousStatus !== "confirmed") {
+        const property = await Property.findById(booking.property);
+        const traveler = await User.findById(booking.user);
+        const targetEmail = booking.email || traveler?.email;
+        
+        if (targetEmail && property) {
+          sendBookingConfirmationEmail(targetEmail, booking, property).catch((err) => {
+            console.error("Async email sending error:", err);
+          });
         }
       }
     }

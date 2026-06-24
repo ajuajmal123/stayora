@@ -12,6 +12,10 @@ const bookingSchema = new Schema(
       ref: "User",
       required: [true, "User reference is required"],
     },
+    email: {
+      type: String,
+      required: [true, "Email address is required"],
+    },
     checkIn: {
       type: Date,
       required: [true, "Check-in date is required"],

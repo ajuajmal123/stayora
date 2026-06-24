@@ -521,6 +521,21 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
                             </span>
                           )}
 
+                          {/* Chat on WhatsApp */}
+                          <a
+                            href={`https://wa.me/918590120810?text=${encodeURIComponent(
+                              `Hello Stayora, here are the details of my stay:\n- Resort: ${booking.property?.title}\n- Booking ID: ${booking._id}\n- Check-in: ${new Date(booking.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(booking.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${booking.guests}\n- Total Cost: ₹${booking.totalPrice.toLocaleString("en-IN")}\n- Status: ${booking.status}`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 py-1 px-4 h-8 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-sm font-bold text-[10px] uppercase tracking-wider transition-colors shadow-sm"
+                          >
+                            <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.197 1.45 4.817 1.45 5.548 0 10.063-4.515 10.066-10.066.002-2.687-1.043-5.215-2.946-7.119C16.68 1.51 14.156.467 11.474.467 5.926.467 1.412 4.981 1.41 10.533c-.001 1.708.452 3.378 1.312 4.83l-.959 3.502 3.582-.94-.288-.168z" />
+                            </svg>
+                            WhatsApp Stayora
+                          </a>
+
                           {/* Cancellation button */}
                           {isCancellable && (
                             <Button
@@ -560,8 +575,8 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
             {wishlist.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {wishlist.map((item) => (
-                  <Card key={item._id} className="relative group">
-                    <div className="relative h-48 overflow-hidden bg-luxury-sand">
+                  <Card key={item._id} className="relative group h-[30rem] flex flex-col justify-between">
+                    <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
                       <Link href={`/stays/${item.slug}`} className="block h-full w-full">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -580,22 +595,22 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
                       </button>
                     </div>
 
-                    <CardHeader className="p-4">
+                    <CardHeader className="p-4 flex flex-col gap-1 text-left">
                       <Link href={`/stays/${item.slug}`}>
-                        <CardTitle className="text-lg hover:text-gold transition-colors">{item.title}</CardTitle>
+                        <CardTitle className="text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors truncate block">{item.title}</CardTitle>
                       </Link>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                        <MapPin className="h-3 w-3 text-gold-dark" />
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-semibold uppercase tracking-wider">
+                        <MapPin className="h-3 w-3 text-gold-dark shrink-0" />
                         {item.city}, {item.country}
                       </p>
                     </CardHeader>
 
-                    <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2">
-                      <span className="text-sm font-bold text-emerald-rich dark:text-gold">
-                        {formatCurrency(item.pricePerNight)} <span className="text-[10px] font-normal text-muted-foreground">/ night</span>
+                    <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01]">
+                      <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
+                        {formatCurrency(item.pricePerNight)} <span className="text-[9px] font-normal text-muted-foreground uppercase font-sans">/ night</span>
                       </span>
                       <Link href={`/stays/${item.slug}`}>
-                        <Button variant="outline" size="sm" className="h-8 py-0 text-[10px] px-3">Details</Button>
+                        <Button variant="outline" size="sm" className="h-8 py-0 text-xs font-bold px-4">Details</Button>
                       </Link>
                     </CardFooter>
                   </Card>

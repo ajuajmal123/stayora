@@ -80,11 +80,17 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
   const query: Record<string, any> = { status: "published" };
 
   if (destination) {
+    const matchedDest = await Destination.findOne({ name: { $regex: destination, $options: "i" } });
+    
     query.$or = [
       { city: { $regex: destination, $options: "i" } },
       { country: { $regex: destination, $options: "i" } },
       { address: { $regex: destination, $options: "i" } },
     ];
+
+    if (matchedDest) {
+      query.$or.push({ destination: matchedDest._id });
+    }
   }
 
   if (minPrice !== null || maxPrice !== null) {
@@ -178,10 +184,10 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
               {properties.map((prop) => {
                 const isSaved = wishlistedIds.has(prop._id.toString());
                 return (
-                  <Card key={prop.slug} className="relative group h-[34rem] flex flex-col justify-between">
+                  <Card key={prop.slug} className="relative group h-[30rem] flex flex-col justify-between">
                     
                     {/* Image gallery container */}
-                    <div className="relative h-72 overflow-hidden bg-luxury-sand shrink-0">
+                    <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
                       <Link href={`/stays/${prop.slug}`} className="block h-full w-full">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -212,50 +218,50 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
                       </div>
                     </div>
 
-                    <CardHeader>
+                    <CardHeader className="p-4">
                       <div className="flex items-start justify-between gap-4">
-                        <Link href={`/stays/${prop.slug}`}>
-                          <CardTitle className="hover:text-gold transition-colors">{prop.title}</CardTitle>
+                        <Link href={`/stays/${prop.slug}`} className="truncate block flex-grow">
+                          <CardTitle className="text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors truncate">{prop.title}</CardTitle>
                         </Link>
-                        <div className="text-right">
-                          <span className="text-base font-bold text-emerald-rich dark:text-gold">
+                        <div className="text-right shrink-0">
+                          <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
                             {formatCurrency(prop.pricePerNight)}
                           </span>
-                          <span className="text-[10px] block text-muted-foreground font-normal">/ night</span>
+                          <span className="text-[9px] block text-muted-foreground font-normal uppercase font-sans mt-0.5">/ night</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground/80 mt-1">
-                        <MapPin className="h-3.5 w-3.5 text-gold-dark" />
+                        <MapPin className="h-3.5 w-3.5 text-gold-dark shrink-0" />
                         <span>{prop.city}, {prop.country}</span>
                       </div>
                     </CardHeader>
 
-                    <CardContent>
-                      <CardDescription className="line-clamp-2 text-xs">
+                    <CardContent className="px-4 py-0 flex-grow">
+                      <CardDescription className="line-clamp-2 text-xs leading-relaxed">
                         {prop.description}
                       </CardDescription>
                       
                       {/* Details specs */}
-                      <div className="grid grid-cols-3 gap-2 border-t border-emerald-rich/5 mt-4 pt-3 text-[11px] font-medium text-emerald-rich/80 dark:text-luxury-cream/80">
+                      <div className="grid grid-cols-3 gap-2 border-t border-emerald-rich/5 mt-3 pt-2 text-[11px] font-medium text-emerald-rich/80 dark:text-luxury-cream/80">
                         <div className="flex items-center gap-1.5">
-                          <BedDouble className="h-4 w-4 text-gold-dark" />
+                          <BedDouble className="h-4 w-4 text-gold-dark shrink-0" />
                           <span>{prop.bedrooms} Bed</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Bath className="h-4 w-4 text-gold-dark" />
+                          <Bath className="h-4 w-4 text-gold-dark shrink-0" />
                           <span>{prop.bathrooms} Bath</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Users className="h-4 w-4 text-gold-dark" />
+                          <Users className="h-4 w-4 text-gold-dark shrink-0" />
                           <span>{prop.maxGuests} Max</span>
                         </div>
                       </div>
                     </CardContent>
 
-                    <CardFooter className="justify-between items-center bg-emerald-rich/[0.01] dark:bg-emerald-light/[0.005] border-t border-emerald-rich/5 py-3">
-                      <span className="text-[10px] text-muted-foreground">Premium Concierge Standard</span>
+                    <CardFooter className="justify-between items-center bg-emerald-rich/[0.01] dark:bg-emerald-light/[0.005] border-t border-emerald-rich/5 px-4 py-3 mt-0 shrink-0">
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider font-sans">Premium Concierge</span>
                       <Link href={`/stays/${prop.slug}`}>
-                        <Button variant="outline" size="sm" className="h-9 py-0">Details</Button>
+                        <Button variant="outline" size="sm" className="h-8 py-0 text-xs font-bold px-4">Details</Button>
                       </Link>
                     </CardFooter>
 

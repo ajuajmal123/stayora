@@ -5,10 +5,33 @@ import { ApiResponse } from "@/lib/api-response";
 import { UnauthorizedError, ForbiddenError } from "@/lib/errors";
 import { verifyAccessToken, verifyRefreshToken, setAuthCookies, clearAuthCookies } from "@/lib/jwt";
 import { cookies } from "next/headers";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../[...nextauth]/route";
 
 export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
+
+    // 1. Try NextAuth session first (user side)
+    const session = await getServerSession(authOptions);
+    if (session && session.user && session.user.email) {
+      const user = await User.findOne({ email: session.user.email }).select("-password -refreshTokens");
+      if (user) {
+        if (user.isBlocked) {
+          throw new ForbiddenError("Your account has been suspended by an administrator.");
+        }
+        const userResponse = {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatar,
+          phoneNumber: user.phoneNumber,
+        };
+        return ApiResponse.success(userResponse, "Session active (next-auth)");
+      }
+    }
+
     const cookieStore = await cookies();
     
     const accessToken = cookieStore.get("accessToken")?.value;

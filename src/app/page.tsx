@@ -354,8 +354,9 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {packagesList.map((pack) => (
-              <Card key={pack.title} className="group flex flex-col sm:flex-row h-auto sm:h-76 overflow-hidden border border-gold/10 bg-white dark:bg-emerald-deep/40 shadow-sm rounded-sm">
-                <div className="w-full sm:w-2/5 h-48 sm:h-auto relative overflow-hidden bg-luxury-sand shrink-0">
+              <Card key={pack.title} className="group border border-gold/10 relative overflow-hidden bg-white dark:bg-emerald-deep/40 shadow-sm rounded-sm h-[30rem] flex flex-col justify-between">
+                {/* Photo container */}
+                <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={pack.image}
@@ -363,62 +364,31 @@ export default async function HomePage() {
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
-                <div className="flex-1 p-6 flex flex-col justify-between">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-display text-lg font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors">{pack.title}</h3>
-                      <span className="text-sm font-bold text-gold shrink-0">₹{pack.price.toLocaleString("en-IN")}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-semibold">
-                      <span>📍 {pack.location}</span>
-                      <span>⏱️ {pack.duration}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed mt-2 font-light">{pack.description}</p>
+                <CardHeader className="p-4 flex flex-col gap-1 text-left flex-grow">
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="font-display text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors line-clamp-1 block">
+                      {pack.title}
+                    </h3>
                   </div>
-                  <Link href="/experiences" className="self-end mt-4">
-                    <Button variant="luxury" size="sm" className="h-8 py-0 px-4 text-[10px]">Inquire Details</Button>
+                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-semibold">
+                    <span>📍 {pack.location.split(",")[0]}</span>
+                    <span>⏱️ {pack.duration}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed mt-2 font-light">
+                    {pack.description}
+                  </p>
+                </CardHeader>
+                <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01] shrink-0">
+                  <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
+                    ₹{pack.price.toLocaleString("en-IN")}
+                  </span>
+                  <Link href="/experiences">
+                    <Button variant="luxury" size="sm" className="h-8 py-0 px-4 text-xs font-bold">Inquire Details</Button>
                   </Link>
-                </div>
+                </CardFooter>
               </Card>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Brand Newsletter banner bar matching the screenshot exactly */}
-      <section className="py-12 bg-emerald-deep border-y border-gold/15 w-full text-luxury-cream">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center justify-between gap-8 text-left">
-          
-          <div className="flex items-center gap-4 flex-1">
-            {/* Logo matching navbar */}
-            <div className="shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/image.png" alt="Stayora Logo" className="h-10 w-auto object-contain" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-gold">Stay inspired. Stay rewarded.</span>
-              <h2 className="text-sm sm:text-base font-light text-white/90 max-w-xl font-sans leading-relaxed">
-                Join Stayora and get exclusive deals & travel inspiration.
-              </h2>
-            </div>
-          </div>
-
-          <form className="flex w-full lg:w-auto max-w-md items-center gap-2 border border-gold/25 p-1 rounded-sm bg-emerald-rich/20">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              required
-              className="px-4 py-2 bg-transparent text-sm text-luxury-cream placeholder:text-muted-foreground outline-none border-none flex-grow min-w-0 focus:ring-0"
-            />
-            <Button
-              type="submit"
-              variant="luxury"
-              className="bg-gold hover:bg-gold-light text-emerald-deep font-semibold text-xs py-2 px-5 shrink-0 rounded-sm"
-            >
-              Subscribe
-            </Button>
-          </form>
-
         </div>
       </section>
 

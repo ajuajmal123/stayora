@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
     await verifyAdmin();
 
-    const properties = await Property.find().sort({ createdAt: -1 });
+    const properties = await Property.find().populate("destination").sort({ createdAt: -1 });
     return ApiResponse.success(properties);
   } catch (error) {
     return ApiResponse.error(error);
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       bathrooms,
       maxGuests,
       images,
+      destination,
     } = body;
 
     // Validation
@@ -106,6 +107,7 @@ export async function POST(req: NextRequest) {
       maxGuests,
       images: uploadedImages,
       agent: admin._id,
+      destination: destination || null,
     });
 
     await newProperty.save();

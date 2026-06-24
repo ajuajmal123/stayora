@@ -17,7 +17,7 @@ import {
   ChevronRight,
   TrendingUp,
   Award,
-  DollarSign,
+  IndianRupee,
   Briefcase,
   FileImage,
   Upload,
@@ -30,12 +30,15 @@ import {
   Mail,
   RefreshCw,
   Gift,
-  Compass as CompassIcon
+  Compass as CompassIcon,
+  LogOut
 } from "lucide-react";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import Modal from "../ui/Modal";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 interface AdminClientProps {
   initialProperties: any[];
@@ -43,7 +46,6 @@ interface AdminClientProps {
   initialUsers: any[];
   initialDestinations: any[];
   initialBanners: any[];
-  initialSubscribers: any[];
   initialPackages: any[];
 }
 
@@ -53,11 +55,22 @@ export const AdminClient: React.FC<AdminClientProps> = ({
   initialUsers,
   initialDestinations,
   initialBanners,
-  initialSubscribers,
   initialPackages
 }) => {
+  const { logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    if (confirm("Are you sure you want to log out of the Stayora Admin Console?")) {
+      const success = await logout();
+      if (success) {
+        router.refresh();
+      }
+    }
+  };
+
   const [activeTab, setActiveTab] = useState<"overview" | "properties" | "bookings" | "users" | "content">("overview");
-  const [contentSubTab, setContentSubTab] = useState<"destinations" | "banners" | "packages" | "subscribers">("destinations");
+  const [contentSubTab, setContentSubTab] = useState<"destinations" | "banners" | "packages">("destinations");
 
   // State arrays
   const [properties, setProperties] = useState(initialProperties);
@@ -65,7 +78,6 @@ export const AdminClient: React.FC<AdminClientProps> = ({
   const [users, setUsers] = useState(initialUsers);
   const [destinations, setDestinations] = useState(initialDestinations);
   const [banners, setBanners] = useState(initialBanners);
-  const [subscribers, setSubscribers] = useState(initialSubscribers);
   const [packages, setPackages] = useState(initialPackages || []);
 
   // Analytics states
@@ -88,7 +100,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     bedrooms: "1",
     bathrooms: "1",
     maxGuests: "2",
-    images: [] as string[]
+    images: [] as string[],
+    destination: ""
   });
   const [propertyError, setPropertyError] = useState("");
   const [isSavingProperty, setIsSavingProperty] = useState(false);
@@ -100,7 +113,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     name: "",
     description: "",
     image: "",
-    isFeatured: false
+    isFeatured: false,
+    popularSpots: [] as { name: string; image: string; activities: string[] }[]
   });
   const [isSavingDest, setIsSavingDest] = useState(false);
 
@@ -281,6 +295,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
       const payload = {
         ...propertyForm,
+        destination: propertyForm.destination || null,
         pricePerNight: Number(propertyForm.pricePerNight),
         bedrooms: Number(propertyForm.bedrooms),
         bathrooms: Number(propertyForm.bathrooms),
@@ -332,7 +347,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       bedrooms: property.bedrooms.toString(),
       bathrooms: property.bathrooms.toString(),
       maxGuests: property.maxGuests.toString(),
-      images: property.images || []
+      images: property.images || [],
+      destination: property.destination?._id || property.destination || ""
     });
     setIsPropertyModalOpen(true);
   };
@@ -352,7 +368,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       bedrooms: "2",
       bathrooms: "2",
       maxGuests: "4",
-      images: []
+      images: [],
+      destination: ""
     });
     setIsPropertyModalOpen(true);
   };
@@ -406,14 +423,60 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
   const openCreateDest = () => {
     setEditingDestId(null);
-    setDestForm({ name: "", description: "", image: "", isFeatured: false });
+    setDestForm({ name: "", description: "", image: "", isFeatured: false, popularSpots: [] });
     setIsDestModalOpen(true);
   };
 
   const openEditDest = (dest: any) => {
     setEditingDestId(dest._id);
-    setDestForm({ name: dest.name, description: dest.description, image: dest.image, isFeatured: dest.isFeatured });
+    setDestForm({
+      name: dest.name,
+      description: dest.description,
+      image: dest.image,
+      isFeatured: dest.isFeatured,
+      popularSpots: dest.popularSpots || []
+    });
     setIsDestModalOpen(true);
+  };
+
+  const addPopularSpot = () => {
+    setDestForm((prev) => ({
+      ...prev,
+      popularSpots: [
+        ...(prev.popularSpots || []),
+        { name: "", image: "", activities: [] }
+      ]
+    }));
+  };
+
+  const removePopularSpot = (index: number) => {
+    setDestForm((prev) => ({
+      ...prev,
+      popularSpots: (prev.popularSpots || []).filter((_, idx) => idx !== index)
+    }));
+  };
+
+  const updatePopularSpotField = (index: number, field: string, value: any) => {
+    setDestForm((prev) => {
+      const updated = [...(prev.popularSpots || [])];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, popularSpots: updated };
+    });
+  };
+
+  const handleSpotImageChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) {
+        alert("Image must be smaller than 4MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updatePopularSpotField(index, "image", reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Banners Management
@@ -549,20 +612,6 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     setIsPackageModalOpen(true);
   };
 
-  // Newsletter unsubscribe
-  const handleDeleteSubscriber = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this subscriber?")) return;
-    try {
-      const res = await fetch(`/api/admin/subscribers?id=${id}`, { method: "DELETE" });
-      const body = await res.json();
-      if (body.success) {
-        setSubscribers((prev) => prev.filter((s) => s._id !== id));
-        alert("Subscriber unsubscribed successfully.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   // Status badge styling helper
   const renderStatus = (status: string) => {
@@ -689,6 +738,13 @@ export const AdminClient: React.FC<AdminClientProps> = ({
         >
           <Compass className="h-4.5 w-4.5" /> Content Editor
         </button>
+
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left text-red-500 hover:bg-red-500/10 border border-transparent mt-4 border-t border-gold/10 pt-4"
+        >
+          <LogOut className="h-4.5 w-4.5" /> Log Out
+        </button>
       </div>
 
       {/* Main Administrative Container */}
@@ -715,7 +771,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="border border-gold/15 p-5 bg-emerald-rich/[0.01] rounded-sm flex items-center gap-4">
                 <div className="h-12 w-12 rounded-full border border-gold/20 flex items-center justify-center text-gold shrink-0">
-                  <DollarSign className="h-5 w-5" />
+                  <IndianRupee className="h-5 w-5" />
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
@@ -1295,17 +1351,6 @@ export const AdminClient: React.FC<AdminClientProps> = ({
               >
                 Hero Slides Banners
               </button>
-              <button
-                onClick={() => setContentSubTab("subscribers")}
-                className={cn(
-                  "px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors",
-                  contentSubTab === "subscribers"
-                    ? "border-gold text-gold"
-                    : "border-transparent text-muted-foreground hover:text-emerald-rich dark:hover:text-luxury-cream"
-                )}
-              >
-                Newsletter Roster
-              </button>
             </div>
 
             {/* Sub-tab 1: Destinations */}
@@ -1478,49 +1523,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
               </div>
             )}
 
-            {/* Sub-tab 4: Subscribers */}
-            {contentSubTab === "subscribers" && (
-              <div className="flex flex-col gap-4">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                  Newsletter Signups Subscribers
-                </h3>
 
-                <div className="overflow-x-auto w-full border border-gold/15 rounded-sm">
-                  <table className="w-full border-collapse text-left text-xs">
-                    <thead>
-                      <tr className="bg-emerald-rich/5 dark:bg-emerald-deep/60 text-gold-dark font-bold border-b border-gold/15 uppercase tracking-wider">
-                        <th className="p-4">Email Address</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4">Joined Date</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gold/10 font-medium text-emerald-rich/90 dark:text-luxury-cream/90">
-                      {subscribers.map((sub) => (
-                        <tr key={sub._id} className="hover:bg-emerald-rich/[0.01]">
-                          <td className="p-4 font-bold">{sub.email}</td>
-                          <td className="p-4">
-                            <span className="text-emerald-500 text-[10px] uppercase font-bold tracking-wider">
-                              Subscribed
-                            </span>
-                          </td>
-                          <td className="p-4">{formatDate(sub.createdAt)}</td>
-                          <td className="p-4 text-right">
-                            <button
-                              onClick={() => handleDeleteSubscriber(sub._id)}
-                              className="p-1.5 border border-red-500/15 text-red-500 rounded-sm hover:bg-red-500/10 transition-colors"
-                              title="Delete subscription"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -1583,6 +1586,25 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                 <option value="archived">Retired / Archived State</option>
               </select>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5 w-full">
+            <label htmlFor="estate-destination" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Connected Destination (Link to Location)
+            </label>
+            <select
+              id="estate-destination"
+              className="w-full px-4 h-11 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream"
+              value={propertyForm.destination}
+              onChange={(e) => setPropertyForm((prev) => ({ ...prev, destination: e.target.value }))}
+            >
+              <option value="">No Explicit Destination connected</option>
+              {destinations.map((dest: any) => (
+                <option key={dest._id} value={dest._id}>
+                  {dest.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -1768,6 +1790,86 @@ export const AdminClient: React.FC<AdminClientProps> = ({
               <span className="text-xs text-muted-foreground">Select Cover Photo (JPEG/PNG)</span>
               <input type="file" accept="image/*" className="hidden" onChange={(e) => handleSingleImageChange(e, setDestForm)} />
             </label>
+          </div>
+
+          {/* Popular Spots and Activities editor */}
+          <div className="border-t border-gold/15 pt-4 mt-2 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+                Popular Spots & Excursion Activities
+              </span>
+              <button
+                type="button"
+                onClick={addPopularSpot}
+                className="px-3 py-1 bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 rounded-sm text-[10px] uppercase font-bold tracking-wider"
+              >
+                + Add Popular Spot
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-4 max-h-60 overflow-y-auto pr-1">
+              {(destForm.popularSpots || []).map((spot, idx) => (
+                <div key={idx} className="p-3 border border-gold/10 rounded-sm bg-emerald-rich/[0.01] flex flex-col gap-3 relative">
+                  <button
+                    type="button"
+                    onClick={() => removePopularSpot(idx)}
+                    className="absolute top-2 right-2 text-red-500 hover:text-red-600 font-bold text-xs uppercase"
+                  >
+                    Remove
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      id={`spot-name-${idx}`}
+                      label="Spot Name"
+                      type="text"
+                      required
+                      placeholder="e.g. Blue Grotto"
+                      value={spot.name}
+                      onChange={(e) => updatePopularSpotField(idx, "name", e.target.value)}
+                    />
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+                        Spot Cover Photo
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {spot.image && (
+                          <div className="h-10 w-16 bg-luxury-sand rounded-sm overflow-hidden border border-gold/10 shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={spot.image} alt="spot preview" className="h-full w-full object-cover" />
+                          </div>
+                        )}
+                        <label className="flex items-center justify-center gap-1.5 border border-dashed border-emerald-rich/20 rounded-sm px-3 h-10 bg-emerald-rich/[0.01] cursor-pointer hover:bg-emerald-rich/5 flex-1">
+                          <Upload className="h-3.5 w-3.5 text-gold" />
+                          <span className="text-[10px] text-muted-foreground">Select Photo</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleSpotImageChange(e, idx)}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Input
+                    id={`spot-activities-${idx}`}
+                    label="Activities (comma separated)"
+                    type="text"
+                    placeholder="e.g. Boating, Swimming, Cave exploring"
+                    value={(spot.activities || []).join(", ")}
+                    onChange={(e) =>
+                      updatePopularSpotField(
+                        idx,
+                        "activities",
+                        e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+                      )
+                    }
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 mt-2">

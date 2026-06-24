@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Button from "@/components/ui/Button";
 import { ArrowLeft } from "lucide-react";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,8 +28,8 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     setIsLoading(true);
     setError("");
-    // Redirect browser to the API endpoint which starts Google OAuth 2.0 flow
-    window.location.href = `/api/auth/google?role=${requestedRole}`;
+    // Trigger Google Sign In flow using NextAuth
+    signIn("google", { callbackUrl: requestedRole === "admin" ? "/admin" : "/" });
   };
 
   return (

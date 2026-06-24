@@ -31,6 +31,16 @@ const destinationSchema = new Schema(
       type: Number,
       default: 0,
     },
+    popularSpots: {
+      type: [
+        new Schema({
+          name: { type: String, required: [true, "Spot name is required"] },
+          image: { type: String, required: [true, "Spot image is required"] },
+          activities: { type: [String], default: [] },
+        })
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,

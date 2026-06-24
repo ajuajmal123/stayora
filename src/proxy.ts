@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 // Lightweight JWT decoding for edge runtime (no node.js crypto dependency)
 function decodeJwt(token: string) {
@@ -39,6 +40,21 @@ export async function proxy(request: NextRequest) {
   const refreshToken = request.cookies.get("refreshToken")?.value;
 
   let user = accessToken ? decodeJwt(accessToken) : null;
+
+  if (!user) {
+    const nextAuthToken = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    if (nextAuthToken) {
+      user = {
+        id: nextAuthToken.id as string,
+        email: nextAuthToken.email as string,
+        role: nextAuthToken.role as "admin" | "agent" | "user",
+      };
+    }
+  }
+
   let newCookies: string[] = [];
 
   // If access token is missing/expired, but refresh token is present, try to auto-refresh

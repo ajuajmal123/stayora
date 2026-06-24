@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     await verifyAdmin();
 
     const body = await req.json();
-    const { name, description, image, isFeatured } = body;
+    const { name, description, image, isFeatured, popularSpots } = body;
 
     if (!name || !description || !image) {
       throw new ValidationError("Missing required destination details");
@@ -68,11 +68,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const processedSpots = [];
+    if (popularSpots && Array.isArray(popularSpots)) {
+      for (const spot of popularSpots) {
+        let spotImageUrl = spot.image;
+        if (spot.image && spot.image.startsWith("data:image/")) {
+          const uploadRes = await uploadToCloudinary(spot.image, "destinations_spots");
+          if (uploadRes) {
+            spotImageUrl = uploadRes.secure_url;
+          } else {
+            throw new ValidationError("Failed to upload spot image to Cloudinary");
+          }
+        }
+        processedSpots.push({
+          name: spot.name,
+          image: spotImageUrl || "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=400&q=80",
+          activities: Array.isArray(spot.activities) ? spot.activities : [],
+        });
+      }
+    }
+
     const newDest = new Destination({
       name,
       description,
       image: finalImageUrl,
       isFeatured: !!isFeatured,
+      popularSpots: processedSpots,
     });
 
     await newDest.save();
@@ -88,7 +109,7 @@ export async function PUT(req: NextRequest) {
     await verifyAdmin();
 
     const body = await req.json();
-    const { id, name, description, image, isFeatured } = body;
+    const { id, name, description, image, isFeatured, popularSpots } = body;
 
     if (!id || !mongoose.isValidObjectId(id)) {
       throw new ValidationError("Invalid Destination ID");
@@ -120,6 +141,29 @@ export async function PUT(req: NextRequest) {
         }
       }
       dest.image = finalImageUrl;
+    }
+
+    if (popularSpots !== undefined) {
+      const processedSpots = [];
+      if (Array.isArray(popularSpots)) {
+        for (const spot of popularSpots) {
+          let spotImageUrl = spot.image;
+          if (spot.image && spot.image.startsWith("data:image/")) {
+            const uploadRes = await uploadToCloudinary(spot.image, "destinations_spots");
+            if (uploadRes) {
+              spotImageUrl = uploadRes.secure_url;
+            } else {
+              throw new ValidationError("Failed to upload spot image to Cloudinary");
+            }
+          }
+          processedSpots.push({
+            name: spot.name,
+            image: spotImageUrl || "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=400&q=80",
+            activities: Array.isArray(spot.activities) ? spot.activities : [],
+          });
+        }
+      }
+      dest.popularSpots = processedSpots;
     }
 
     await dest.save();

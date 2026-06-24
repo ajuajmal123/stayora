@@ -69,7 +69,9 @@ export default async function PropertyDetailsPage({
   await connectToDatabase();
 
   // 1. Fetch property
-  const property = await Property.findOne({ slug }).populate("agent", "name avatar email phoneNumber");
+  const property = await Property.findOne({ slug })
+    .populate("agent", "name avatar email phoneNumber")
+    .populate("destination");
   if (!property) {
     notFound();
   }
@@ -128,7 +130,7 @@ export default async function PropertyDetailsPage({
       "ratingValue": property.rating,
       "reviewCount": property.reviewsCount,
     } : undefined,
-    "priceRange": `$$$$ (USD ${property.pricePerNight} per night)`,
+    "priceRange": `₹₹₹₹ (INR ${property.pricePerNight} per night)`,
   };
 
   return (
@@ -262,8 +264,8 @@ export default async function PropertyDetailsPage({
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {relatedProperties.map((related) => (
-              <Card key={related.slug} className="group">
-                <div className="relative h-56 overflow-hidden bg-luxury-sand">
+              <Card key={related.slug} className="group h-[30rem] flex flex-col justify-between">
+                <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
                   <Link href={`/stays/${related.slug}`} className="block h-full w-full">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -278,20 +280,20 @@ export default async function PropertyDetailsPage({
                     </div>
                   )}
                 </div>
-                <CardHeader className="p-4">
+                <CardHeader className="p-4 flex flex-col gap-1 text-left flex-grow">
                   <Link href={`/stays/${related.slug}`}>
-                    <CardTitle className="text-lg hover:text-gold transition-colors">{related.title}</CardTitle>
+                    <CardTitle className="text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors truncate block">{related.title}</CardTitle>
                   </Link>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                    <MapPin className="h-3 w-3 text-gold-dark" /> {related.city}, {related.country}
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-semibold uppercase tracking-wider">
+                    <MapPin className="h-3 w-3 text-gold-dark shrink-0" /> {related.city}, {related.country}
                   </p>
                 </CardHeader>
-                <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2">
-                  <span className="text-sm font-bold text-emerald-rich dark:text-gold">
-                    {formatCurrency(related.pricePerNight)} <span className="text-[10px] font-normal text-muted-foreground">/ night</span>
+                <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01] shrink-0">
+                  <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
+                    {formatCurrency(related.pricePerNight)} <span className="text-[9px] font-normal text-muted-foreground uppercase font-sans">/ night</span>
                   </span>
                   <Link href={`/stays/${related.slug}`}>
-                    <Button variant="outline" size="sm" className="h-8 py-0 px-4 text-[10px]">Details</Button>
+                    <Button variant="outline" size="sm" className="h-8 py-0 px-4 text-xs font-bold">Details</Button>
                   </Link>
                 </CardFooter>
               </Card>

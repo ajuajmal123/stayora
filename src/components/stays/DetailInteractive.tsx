@@ -82,6 +82,13 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
       if (body.success && body.data) {
         setCheckoutData(body.data);
         setIsCheckoutModalOpen(true);
+        try {
+          const message = `Hello Stayora, I would like to book a stay.\n\nHere are my booking details:\n- Resort: ${body.data.propertyTitle}\n- Booking ID: ${body.data.bookingId}\n- Check-in: ${new Date(body.data.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(body.data.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${body.data.guests}\n- Total Cost: ₹${body.data.totalPrice.toLocaleString("en-IN")}`;
+          const whatsappUrl = `https://wa.me/918590120810?text=${encodeURIComponent(message)}`;
+          window.open(whatsappUrl, "_blank");
+        } catch (e) {
+          console.error("Popup blocked:", e);
+        }
       } else {
         setBookingError(body.message || "Failed to initiate reservation.");
       }
@@ -577,6 +584,22 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
               <span className="font-bold text-gold">{formatCurrency(checkoutData?.totalPrice || 0)}</span>
             </div>
           </div>
+
+          {checkoutData && (
+            <a
+              href={`https://wa.me/918590120810?text=${encodeURIComponent(
+                `Hello Stayora, I would like to book a stay.\n\nHere are my booking details:\n- Resort: ${checkoutData.propertyTitle}\n- Booking ID: ${checkoutData.bookingId}\n- Check-in: ${new Date(checkoutData.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(checkoutData.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${checkoutData.guests}\n- Total Cost: ₹${checkoutData.totalPrice.toLocaleString("en-IN")}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-sm text-xs font-bold transition-all uppercase tracking-wider shadow-sm hover:scale-[1.01]"
+            >
+              <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.197 1.45 4.817 1.45 5.548 0 10.063-4.515 10.066-10.066.002-2.687-1.043-5.215-2.946-7.119C16.68 1.51 14.156.467 11.474.467 5.926.467 1.412 4.981 1.41 10.533c-.001 1.708.452 3.378 1.312 4.83l-.959 3.502 3.582-.94-.288-.168z" />
+              </svg>
+              Confirm Reservation via WhatsApp
+            </a>
+          )}
 
           <Input
             id="checkout-upi-utr"

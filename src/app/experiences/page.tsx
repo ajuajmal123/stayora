@@ -87,11 +87,11 @@ export default async function ExperiencesPage() {
 
       {/* Experiences Grid */}
       <section className="flex-1 max-w-7xl mx-auto px-6 py-20 w-full flex flex-col gap-12 text-left">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {experiences.map((exp) => (
-            <Card key={exp.title} className="group flex flex-col md:flex-row h-auto md:h-80 overflow-hidden border border-gold/10">
+            <Card key={exp.title} className="group border border-gold/10 relative overflow-hidden bg-white dark:bg-emerald-deep/40 shadow-sm rounded-sm h-[30rem] flex flex-col justify-between">
               {/* Image Panel */}
-              <div className="w-full md:w-2/5 h-56 md:h-auto overflow-hidden relative">
+              <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={exp.image}
@@ -100,30 +100,29 @@ export default async function ExperiencesPage() {
                 />
               </div>
 
-              {/* Details Panel */}
-              <div className="flex-1 p-6 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-start justify-between gap-4">
-                    <CardTitle className="text-xl font-bold hover:text-gold transition-colors">{exp.title}</CardTitle>
-                    <span className="text-sm font-bold text-emerald-rich dark:text-gold shrink-0">
-                      From {formatCurrency(exp.price)}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground font-semibold mt-1">
-                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3 text-gold-dark" /> {exp.location}</span>
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3 text-gold-dark" /> {exp.duration}</span>
-                  </div>
-                  <CardDescription className="line-clamp-4 text-xs leading-relaxed mt-4">
-                    {exp.description}
-                  </CardDescription>
+              {/* Details Header */}
+              <CardHeader className="p-4 flex flex-col gap-1 text-left flex-grow">
+                <CardTitle className="text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors line-clamp-1 block">
+                  {exp.title}
+                </CardTitle>
+                <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground font-semibold">
+                  <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3 text-gold-dark shrink-0" /> {exp.location.split(",")[0]}</span>
+                  <span className="flex items-center gap-0.5"><Clock className="h-3 w-3 text-gold-dark shrink-0" /> {exp.duration.split(" ")[0]} {exp.duration.split(" ")[1] || ""}</span>
                 </div>
+                <CardDescription className="line-clamp-3 text-xs leading-relaxed mt-2">
+                  {exp.description}
+                </CardDescription>
+              </CardHeader>
 
-                <CardFooter className="p-0 border-t-0 mt-4 self-end">
-                  <Button variant="luxury" size="sm">
-                    Inquire Details
-                  </Button>
-                </CardFooter>
-              </div>
+              {/* Price & Action Footer */}
+              <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01] shrink-0">
+                <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
+                  From {formatCurrency(exp.price)}{" "}
+                </span>
+                <Button variant="luxury" size="sm" className="h-8 py-0 px-4 text-xs font-bold">
+                  Inquire Details
+                </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>

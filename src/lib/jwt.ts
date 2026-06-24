@@ -18,7 +18,7 @@ export function signAccessToken(payload: TokenPayload): string {
 }
 
 export function signRefreshToken(payload: TokenPayload): string {
-  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: "7d" });
+  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: "15d" });
 }
 
 export function verifyAccessToken(token: string): TokenPayload | null {
@@ -54,7 +54,7 @@ export async function setAuthCookies(payload: TokenPayload, customRefreshToken?:
     maxAge: 15 * 60, // 15 minutes
   });
 
-  // Set Refresh Token (7 days)
+  // Set Refresh Token (15 days)
   cookieStore.set({
     name: "refreshToken",
     value: refreshToken,
@@ -62,7 +62,7 @@ export async function setAuthCookies(payload: TokenPayload, customRefreshToken?:
     secure: env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 15 * 24 * 60 * 60, // 15 days
   });
 
   return { accessToken, refreshToken };
@@ -87,6 +87,26 @@ export async function clearAuthCookies() {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
     sameSite: "strict",
+    path: "/",
+    maxAge: 0,
+  });
+
+  cookieStore.set({
+    name: "next-auth.session-token",
+    value: "",
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+
+  cookieStore.set({
+    name: "__Secure-next-auth.session-token",
+    value: "",
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
     path: "/",
     maxAge: 0,
   });

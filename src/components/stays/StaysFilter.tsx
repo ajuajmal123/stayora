@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SlidersHorizontal, Star, DollarSign, Users, X, MapPin } from "lucide-react";
+import { SlidersHorizontal, Star, IndianRupee, Users, X, MapPin } from "lucide-react";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import { cn } from "@/lib/utils";
@@ -145,7 +145,7 @@ export const StaysFilter: React.FC<StaysFilterProps> = ({
           {/* Price Range */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle flex items-center gap-1.5">
-              <DollarSign className="h-3.5 w-3.5 text-gold-dark" /> Price Range (USD)
+              <IndianRupee className="h-3.5 w-3.5 text-gold-dark" /> Price Range (INR)
             </span>
             <div className="grid grid-cols-2 gap-3">
               <Input

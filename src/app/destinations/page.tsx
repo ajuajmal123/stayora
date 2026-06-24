@@ -25,6 +25,7 @@ export default async function DestinationsPage() {
       const count = await Property.countDocuments({
         status: "published",
         $or: [
+          { destination: dest._id },
           { city: { $regex: dest.name, $options: "i" } },
           { country: { $regex: dest.name, $options: "i" } },
         ],
@@ -61,9 +62,9 @@ export default async function DestinationsPage() {
       <section className="flex-1 max-w-7xl mx-auto px-6 py-20 w-full flex flex-col gap-12 text-left">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {destinationsWithCounts.map((dest) => (
-            <Card key={dest.slug} className="group flex flex-col h-[32rem] relative overflow-hidden">
+            <Card key={dest.slug} className="group flex flex-col h-[30rem] relative overflow-hidden justify-between">
               {/* Image Container */}
-              <div className="h-76 overflow-hidden relative">
+              <div className="h-56 overflow-hidden relative shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={dest.image}
@@ -89,12 +90,35 @@ export default async function DestinationsPage() {
                     </span>
                   )}
                 </div>
-                <CardDescription className="line-clamp-3 text-xs leading-relaxed mt-1">
+                <CardDescription className="line-clamp-2 text-xs leading-relaxed mt-1">
                   {dest.description}
                 </CardDescription>
+
+                {/* Popular Spots horizontal thumbnails row */}
+                {dest.popularSpots && dest.popularSpots.length > 0 && (
+                  <div className="flex flex-col gap-1.5 mt-2 border-t border-gold/10 pt-2 text-left">
+                    <span className="text-[10px] font-bold text-gold uppercase tracking-wider">
+                      Popular Spots & Activities:
+                    </span>
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                      {dest.popularSpots.map((spot: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-1.5 shrink-0 bg-emerald-rich/5 dark:bg-emerald-deep/40 px-2 py-1 border border-gold/10 rounded-sm text-[10px]" title={`Activities: ${spot.activities.join(', ')}`}>
+                          {spot.image && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={spot.image} alt={spot.name} className="h-5 w-8 object-cover rounded-xs shrink-0" />
+                          )}
+                          <div className="leading-none text-left">
+                            <span className="font-bold block text-[10px] text-emerald-rich dark:text-gold-subtle">{spot.name}</span>
+                            <span className="text-[8px] text-muted-foreground">{spot.activities.slice(0, 2).join(', ')}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardHeader>
 
-              <CardContent className="px-6 pb-6 pt-0">
+              <CardContent className="px-6 pb-6 pt-0 shrink-0">
                 <Link href={`/stays?destination=${encodeURIComponent(dest.name)}`} className="w-full">
                   <Button variant="outline" size="sm" className="w-full text-xs flex items-center justify-center gap-2 group-hover:bg-gold group-hover:text-emerald-deep group-hover:border-gold">
                     Explore Stays <ArrowIcon />

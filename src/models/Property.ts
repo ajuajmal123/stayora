@@ -87,6 +87,11 @@ const propertySchema = new Schema(
       ref: "User",
       required: [true, "Agent is required"],
     },
+    destination: {
+      type: Schema.Types.ObjectId,
+      ref: "Destination",
+      default: null,
+    },
   },
   {
     timestamps: true,
