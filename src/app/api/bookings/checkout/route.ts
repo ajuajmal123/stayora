@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       merchantVpa,
     };
 
-    return ApiResponse.success(responsePayload, "Booking created, awaiting UPI payment receipt submission", 21);
+    return ApiResponse.success(responsePayload, "Booking created, awaiting UPI payment receipt submission", 201);
   } catch (error) {
     return ApiResponse.error(error);
   }

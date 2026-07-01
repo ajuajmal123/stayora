@@ -2,12 +2,11 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Star, Calendar, Shield, Compass, FileImage, Upload } from "lucide-react";
+import { Star, Calendar, Shield, Compass } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, formatCurrency } from "@/lib/utils";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
-import Modal from "../ui/Modal";
 
 interface ReviewPayload {
   _id: string;
@@ -47,15 +46,6 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
   // Booking Checkout states
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState("");
-  const [checkoutData, setCheckoutData] = useState<any>(null);
-  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-
-  // UPI payment receipt submission states
-  const [checkoutUtrNumber, setCheckoutUtrNumber] = useState("");
-  const [checkoutReceiptBase64, setCheckoutReceiptBase64] = useState("");
-  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
-  const [paymentError, setPaymentError] = useState("");
-  const [paymentSuccess, setPaymentSuccess] = useState("");
 
   const handleRequestReservation = async () => {
     if (!guestName || !guestEmail) {
@@ -87,15 +77,15 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
       const body = await response.json();
 
       if (body.success && body.data) {
-        setCheckoutData(body.data);
-        setIsCheckoutModalOpen(true);
         try {
-          const message = `Hello Stayora, I would like to book a stay.\n\nHere are my booking details:\n- Guest Name: ${guestName}\n- Guest Email: ${guestEmail}\n- Resort: ${body.data.propertyTitle}\n- Booking ID: ${body.data.bookingId}\n- Check-in: ${new Date(body.data.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(body.data.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${body.data.guests}\n- Total Cost: ₹${body.data.totalPrice.toLocaleString("en-IN")}`;
+          const message = `Hello Stayora, I would like to book a stay.\n\nHere are my booking details:\n- Guest Name: ${guestName}\n- Guest Email: ${guestEmail}\n- Resort: ${body.data.propertyTitle}\n- Check-in: ${new Date(body.data.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(body.data.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${body.data.guests}`;
           const whatsappUrl = `https://wa.me/918590120810?text=${encodeURIComponent(message)}`;
           window.open(whatsappUrl, "_blank");
         } catch (e) {
           console.error("Popup blocked:", e);
         }
+        alert("Enquiry requested successfully! We are redirecting you to WhatsApp to confirm details with your concierge.");
+        router.push("/stays");
       } else {
         setBookingError(body.message || "Failed to initiate reservation.");
       }
@@ -104,59 +94,6 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
       setBookingError("Network error. Failed to initiate reservation request.");
     } finally {
       setIsBooking(false);
-    }
-  };
-
-  const handleCheckoutPaymentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!checkoutData || !checkoutUtrNumber) return;
-
-    setIsSubmittingPayment(true);
-    setPaymentError("");
-    setPaymentSuccess("");
-
-    try {
-      const response = await fetch("/api/bookings/submit-payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookingId: checkoutData.bookingId,
-          upiTransactionId: checkoutUtrNumber,
-          upiReceiptScreenshot: checkoutReceiptBase64,
-        }),
-      });
-
-      const body = await response.json();
-
-      if (body.success) {
-        setPaymentSuccess("Your settlement receipt has been successfully logged! Redirecting to home page...");
-        setTimeout(() => {
-          setIsCheckoutModalOpen(false);
-          router.push("/");
-        }, 2000);
-      } else {
-        setPaymentError(body.message || "Receipt registration failed.");
-      }
-    } catch (err) {
-      console.error(err);
-      setPaymentError("An unexpected error occurred during submission.");
-    } finally {
-      setIsSubmittingPayment(false);
-    }
-  };
-
-  const handleCheckoutReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 4 * 1024 * 1024) {
-        setPaymentError("Receipt image size must not exceed 4MB");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCheckoutReceiptBase64(reader.result as string);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -352,7 +289,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
                 onChange={(e) => setGuestsCount(parseInt(e.target.value))}
                 className="h-10 rounded-sm border border-emerald-rich/10 bg-transparent px-3 text-xs focus:ring-1 focus:ring-gold text-emerald-rich dark:text-luxury-cream"
               >
-                {Array.from({ length: maxGuests }).map((_, idx) => (
+                {Array.from({ length: 30 }).map((_, idx) => (
                   <option key={idx + 1} value={idx + 1} className="dark:bg-emerald-deep">
                     {idx + 1} Guest{idx > 0 ? "s" : ""}
                   </option>
@@ -459,95 +396,6 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
       </div>
 
     </div>
-
-      {/* UPI Checkout & Settlement modal */}
-      <Modal
-        isOpen={isCheckoutModalOpen}
-        onClose={() => {
-          setIsCheckoutModalOpen(false);
-          router.push("/");
-        }}
-        title="Submit UPI Transaction Settlement Reference"
-      >
-        <form onSubmit={handleCheckoutPaymentSubmit} className="flex flex-col gap-5 text-left text-emerald-rich dark:text-luxury-cream">
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Kindly scan the authorized merchant UPI QR code using your preferred mobile banking application to settle your balance. Submit the 12-digit unique transaction identifier (UTR) below to request bank clearance.
-          </p>
-
-          {paymentError && <span className="text-xs text-red-500 font-semibold">{paymentError}</span>}
-          {paymentSuccess && <span className="text-xs text-gold font-semibold">{paymentSuccess}</span>}
-
-          {/* QR Scan helper */}
-          <div className="flex flex-col items-center justify-center p-4 bg-emerald-rich/5 border border-gold/15 rounded-sm max-w-xs mx-auto gap-3">
-            <div className="h-32 w-32 bg-white flex items-center justify-center border border-gold/25 p-2 rounded-sm relative">
-              <div className="absolute inset-2 border border-emerald-rich/10 border-dashed animate-pulse" />
-              <Compass className="h-10 w-10 text-emerald-rich/50" />
-            </div>
-            <div className="text-center">
-              <span className="text-[10px] font-bold text-gold-dark uppercase tracking-wider">Merchant VPA ID</span>
-              <p className="text-xs font-semibold text-emerald-rich dark:text-luxury-cream">
-                {checkoutData?.merchantVpa || "stayora@upi"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1 bg-emerald-rich/5 border border-gold/10 p-3 rounded-sm text-xs font-medium">
-            <div className="flex justify-between">
-              <span>Bespoke Total Price:</span>
-              <span className="font-bold text-gold">{formatCurrency(checkoutData?.totalPrice || 0)}</span>
-            </div>
-          </div>
-
-          {checkoutData && (
-            <a
-              href={`https://wa.me/918590120810?text=${encodeURIComponent(
-                `Hello Stayora, I would like to book a stay.\n\nHere are my booking details:\n- Guest Name: ${guestName}\n- Guest Email: ${guestEmail}\n- Resort: ${checkoutData.propertyTitle}\n- Booking ID: ${checkoutData.bookingId}\n- Check-in: ${new Date(checkoutData.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(checkoutData.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${checkoutData.guests}\n- Total Cost: ₹${checkoutData.totalPrice.toLocaleString("en-IN")}`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-sm text-xs font-bold transition-all uppercase tracking-wider shadow-sm hover:scale-[1.01]"
-            >
-              <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.197 1.45 4.817 1.45 5.548 0 10.063-4.515 10.066-10.066.002-2.687-1.043-5.215-2.946-7.119C16.68 1.51 14.156.467 11.474.467 5.926.467 1.412 4.981 1.41 10.533c-.001 1.708.452 3.378 1.312 4.83l-.959 3.502 3.582-.94-.288-.168z" />
-              </svg>
-              Confirm Reservation via WhatsApp
-            </a>
-          )}
-
-          <Input
-            id="checkout-upi-utr"
-            label="12-Digit Transaction Reference (UTR Number)"
-            type="text"
-            placeholder="e.g. 618491028472"
-            value={checkoutUtrNumber}
-            onChange={(e) => setCheckoutUtrNumber(e.target.value)}
-            required
-          />
-
-          <div className="flex flex-col gap-1.5 w-full">
-            <span className="text-xs font-medium uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-              Digital Transaction Receipt Screenshot (Optional)
-            </span>
-            <label className="flex flex-col items-center justify-center border border-dashed border-emerald-rich/20 rounded-sm p-6 bg-emerald-rich/[0.01] hover:bg-emerald-rich/5 transition-all cursor-pointer">
-              {checkoutReceiptBase64 ? (
-                <div className="flex items-center gap-2 text-xs font-semibold text-gold">
-                  <FileImage className="h-5 w-5" /> Screenshot loaded successfully
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
-                  <Upload className="h-6 w-6 text-gold" />
-                  <span>Choose screenshot image (JPEG/PNG, max 4MB)</span>
-                </div>
-              )}
-              <input type="file" accept="image/*" onChange={handleCheckoutReceiptChange} className="hidden" />
-            </label>
-          </div>
-
-          <Button variant="luxury" size="md" type="submit" isLoading={isSubmittingPayment} className="mt-2 self-end">
-            Submit Receipt for Bank Settlement
-          </Button>
-        </form>
-      </Modal>
     </>
   );
 };

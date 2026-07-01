@@ -201,10 +201,11 @@ export const HomeHero: React.FC<HomeHeroProps> = ({ destinations }) => {
                   onChange={(e) => setSearchGuests(parseInt(e.target.value))}
                   className="text-xs font-semibold text-emerald-rich dark:text-luxury-cream bg-transparent border-none outline-none focus:ring-0 mt-0.5 w-full cursor-pointer"
                 >
-                  <option value={1} className="dark:bg-emerald-deep text-emerald-rich dark:text-luxury-cream">1 Traveler</option>
-                  <option value={2} className="dark:bg-emerald-deep text-emerald-rich dark:text-luxury-cream">2 Travelers</option>
-                  <option value={4} className="dark:bg-emerald-deep text-emerald-rich dark:text-luxury-cream">4 Travelers</option>
-                  <option value={6} className="dark:bg-emerald-deep text-emerald-rich dark:text-luxury-cream">6+ Travelers</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20].map((num) => (
+                    <option key={num} value={num} className="dark:bg-emerald-deep text-emerald-rich dark:text-luxury-cream">
+                      {num} Traveler{num > 1 ? "s" : ""}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

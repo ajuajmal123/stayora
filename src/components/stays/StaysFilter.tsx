@@ -131,7 +131,7 @@ export const StaysFilter: React.FC<StaysFilterProps> = ({
             className="h-9 w-full rounded-sm border border-emerald-rich/10 dark:border-gold/20 bg-transparent px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold text-emerald-rich dark:text-luxury-cream cursor-pointer"
           >
             <option value="" className="dark:bg-emerald-deep">Any Guests</option>
-            {[2, 4, 6, 8, 10, 12, 14].map((num) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30].map((num) => (
               <option key={num} value={num} className="dark:bg-emerald-deep">
                 {num}+ Guests
               </option>

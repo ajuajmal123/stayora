@@ -181,6 +181,14 @@ export default async function HomePage() {
                       <span className="text-[9px] uppercase font-bold text-gold tracking-widest">{prop.type}</span>
                     </div>
 
+                    {/* Floating Price tag */}
+                    <div className="absolute bottom-3 left-3 bg-emerald-deep/90 backdrop-blur-md px-2.5 py-1 border border-gold/25 rounded-sm flex items-baseline gap-1 shadow-md">
+                      <span className="text-xs font-semibold text-gold font-display">
+                        {formatCurrency(prop.pricePerNight)}
+                      </span>
+                      <span className="text-[8px] font-medium text-luxury-cream/80 uppercase tracking-widest">/ night</span>
+                    </div>
+
                     {/* Heart Toggle */}
                     <div className="absolute top-3 right-3 z-10">
                       <WishlistToggle
@@ -225,17 +233,18 @@ export default async function HomePage() {
                   </CardContent>
 
                   <CardFooter className="p-4 pt-3 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01]">
-                    <div className="bg-emerald-rich dark:bg-gold/10 px-3 py-1 rounded-sm border border-gold/20 flex flex-col items-center justify-center shrink-0">
-                      <span className="text-xs font-bold text-gold font-display leading-none">
-                        {formatCurrency(prop.pricePerNight)}
-                      </span>
-                      <span className="text-[8px] font-bold text-luxury-cream/80 dark:text-gold/80 uppercase tracking-widest mt-0.5 leading-none">/ night</span>
-                    </div>
-                    {prop.rating > 0 && (
+                    {prop.rating > 0 ? (
                       <span className="bg-gold/10 text-gold border border-gold/20 px-2 py-0.5 rounded-sm flex items-center gap-1 text-[9px] font-bold">
                         <Star className="h-3 w-3 fill-gold text-gold" /> {prop.rating}
                       </span>
+                    ) : (
+                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Luxury Standard</span>
                     )}
+                    <Link href={`/stays/${prop.slug}`}>
+                      <Button variant="luxury" size="sm" className="h-8 text-[10px] py-0 tracking-wider font-bold uppercase px-4">
+                        Explore Estate
+                      </Button>
+                    </Link>
                   </CardFooter>
                 </Card>
               );
