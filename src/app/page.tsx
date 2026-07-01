@@ -25,7 +25,8 @@ import {
   Search,
   Calendar as CalendarIcon,
   ShieldAlert,
-  Heart
+  Heart,
+  Clock
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { verifyAccessToken } from "@/lib/jwt";
@@ -47,70 +48,6 @@ async function getWishlistSet(): Promise<Set<string>> {
   return new Set(user.wishlist.map((id: any) => id.toString()));
 }
 
-// 4 Dummy properties matching user's design image exactly
-const dummyStays = [
-  {
-    _id: "dummy1",
-    title: "The Forest Hideaway",
-    slug: "the-forest-hideaway",
-    type: "cabin",
-    rating: 4.8,
-    pricePerNight: 6500,
-    city: "Manali",
-    country: "Himachal Pradesh",
-    description: "Nestled in dense pine woods, offering rustic luxury and panoramic valley views.",
-    images: ["https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80"],
-    bedrooms: 2,
-    bathrooms: 2,
-    maxGuests: 4,
-  },
-  {
-    _id: "dummy2",
-    title: "Oceanview Villa",
-    slug: "oceanview-villa",
-    type: "villa",
-    rating: 4.9,
-    pricePerNight: 9200,
-    city: "Goa",
-    country: "India",
-    description: "Seaside architectural masterpiece with private beach access and sunset infinity pool.",
-    images: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"],
-    bedrooms: 4,
-    bathrooms: 4,
-    maxGuests: 8,
-  },
-  {
-    _id: "dummy3",
-    title: "The Alpine Retreat",
-    slug: "the-alpine-retreat",
-    type: "resort",
-    rating: 4.7,
-    pricePerNight: 7800,
-    city: "Auli",
-    country: "Uttarakhand",
-    description: "Luxury ski-in, ski-out resort facing the majestic snow-capped peaks of Nanda Devi.",
-    images: ["https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80"],
-    bedrooms: 3,
-    bathrooms: 3,
-    maxGuests: 6,
-  },
-  {
-    _id: "dummy4",
-    title: "Desert Serenity",
-    slug: "desert-serenity",
-    type: "mansion",
-    rating: 4.6,
-    pricePerNight: 5100,
-    city: "Jaisalmer",
-    country: "Rajasthan",
-    description: "A heritage golden-sandstone palace offering royal dunes glamping and stargazing courtyard.",
-    images: ["https://images.unsplash.com/photo-1585983224974-084a8e065e76?auto=format&fit=crop&w=800&q=80"],
-    bedrooms: 3,
-    bathrooms: 3,
-    maxGuests: 6,
-  },
-];
-
 export default async function HomePage() {
   try {
     await connectToDatabase();
@@ -123,50 +60,29 @@ export default async function HomePage() {
     // Fetch saved wishlist property IDs
     const wishlistedIds = await getWishlistSet();
 
+    // Fetch featured properties (published properties, sorted by rating desc, limited to 4)
+    const dbProperties = await Property.find({ status: "published" }).sort({ rating: -1 }).limit(4);
+
     // Fetch featured destinations
     const dbFeaturedDestinations = await Destination.find({ isFeatured: true }).limit(3);
-    const destinationsList = dbFeaturedDestinations.length > 0
-      ? dbFeaturedDestinations.map(d => ({ name: d.name, description: d.description, image: d.image }))
-      : [
-          {
-            name: "Amalfi Coast",
-            description: "Stunning cliffside villages, pastel buildings, and turquoise seas on Italy's southern coastline.",
-            image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80",
-          },
-          {
-            name: "Swiss Alps",
-            description: "Snow-capped peaks, alpine lakes, and world-class luxury ski resorts in Switzerland.",
-            image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
-          },
-          {
-            name: "Kyoto",
-            description: "Historic temples, bamboo forests, and luxury ryokans reflecting ancient Japanese heritage.",
-            image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80",
-          }
-        ];
+    const destinationsList = dbFeaturedDestinations.map(d => ({
+      name: d.name,
+      description: d.description,
+      image: d.image,
+      propertiesCount: d.propertiesCount || 0,
+      popularSpots: d.popularSpots || []
+    }));
 
     // Fetch featured packages
     const dbFeaturedPackages = await TourPackage.find({ isFeatured: true }).limit(2);
-    const packagesList = dbFeaturedPackages.length > 0
-      ? dbFeaturedPackages.map(p => ({ title: p.title, description: p.description, duration: p.duration, price: p.price, location: p.location, image: p.image }))
-      : [
-          {
-            title: "Mediterranean Yacht Charter",
-            description: "Cruise the French Riviera or Amalfi Coast aboard a private luxury yacht. Day includes chef seafood lunch, champagne bar, and water sports.",
-            duration: "Full Day (8 Hours)",
-            price: 360000,
-            location: "St. Tropez / Positano",
-            image: "https://images.unsplash.com/photo-1544085311-11a028465b03?auto=format&fit=crop&w=800&q=80",
-          },
-          {
-            title: "Alpine Helicopter Transfer",
-            description: "Skip the roads and glide over the Swiss Alps with a scenic helicopter flight to Zermatt, featuring Matterhorn views and direct landing.",
-            duration: "Flight (45 Minutes)",
-            price: 150000,
-            location: "Zermatt, Switzerland",
-            image: "https://images.unsplash.com/photo-1508873699372-7aeab60b44ab?auto=format&fit=crop&w=800&q=80",
-          }
-        ];
+    const packagesList = dbFeaturedPackages.map(p => ({
+      title: p.title,
+      description: p.description,
+      duration: p.duration,
+      price: p.price,
+      location: p.location,
+      image: p.image
+    }));
 
     return (
     <div className="min-h-screen flex flex-col bg-[#FDFCF7] dark:bg-emerald-deep text-luxury-black dark:text-luxury-cream transition-colors duration-500 font-sans">
@@ -231,166 +147,225 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Stays Section */}
-      <section className="py-20 max-w-7xl mx-auto px-6 w-full flex flex-col gap-10 text-left">
-        <div className="flex items-end justify-between border-b border-gold/10 pb-4">
-          <div className="flex flex-col gap-1.5">
-            <h2 className="font-display text-3xl font-light text-emerald-rich dark:text-luxury-cream">
-              Featured <span className="font-semibold text-gold">Stays</span>
-            </h2>
+      {dbProperties.length > 0 && (
+        <section className="py-20 max-w-7xl mx-auto px-6 w-full flex flex-col gap-10 text-left">
+          <div className="flex items-end justify-between border-b border-gold/10 pb-4">
+            <div className="flex flex-col gap-1.5">
+              <h2 className="font-display text-3xl font-light text-emerald-rich dark:text-luxury-cream">
+                Featured <span className="font-semibold text-gold">Stays</span>
+              </h2>
+            </div>
+            <Link href="/stays" className="text-xs font-bold text-gold hover:text-gold-light flex items-center gap-1 hover:underline tracking-wide uppercase">
+              View all stays <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
-          <Link href="/stays" className="text-xs font-bold text-gold hover:text-gold-light flex items-center gap-1 hover:underline tracking-wide uppercase">
-            View all stays <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
 
-        {/* Hardcoded 4 Dummy properties cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {dummyStays.map((prop) => {
-            const isSaved = wishlistedIds.has(prop._id);
-            return (
-              <Card key={prop.slug} className="group border border-gold/10 relative overflow-hidden bg-white dark:bg-emerald-deep/40 shadow-sm rounded-sm h-[30rem] flex flex-col justify-between">
-                {/* Photo container */}
-                <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
-                  <Link href={`/stays/${prop.slug}`} className="block h-full w-full">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={prop.images[0]}
-                      alt={prop.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  </Link>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {dbProperties.map((prop) => {
+              const isSaved = wishlistedIds.has(prop._id.toString());
+              return (
+                <Card key={prop.slug} className="group border border-gold/10 relative overflow-hidden bg-white dark:bg-emerald-deep/40 shadow-sm hover:shadow-xl hover:border-gold/30 rounded-sm h-[30rem] flex flex-col justify-between transition-all duration-500 hover:-translate-y-1">
+                  {/* Photo container */}
+                  <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
+                    <Link href={`/stays/${prop.slug}`} className="block h-full w-full">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={prop.images[0]}
+                        alt={prop.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    </Link>
 
-                  {/* Heart Toggle */}
-                  <div className="absolute top-3 right-3 z-10">
-                    <WishlistToggle
-                      propertyId={prop._id}
-                      initialIsWishlisted={isSaved}
-                    />
+                    {/* Floating Category tag */}
+                    <div className="absolute top-3 left-3 bg-emerald-deep/80 backdrop-blur-md px-2 py-0.5 border border-gold/20 rounded-sm">
+                      <span className="text-[9px] uppercase font-bold text-gold tracking-widest">{prop.type}</span>
+                    </div>
+
+                    {/* Heart Toggle */}
+                    <div className="absolute top-3 right-3 z-10">
+                      <WishlistToggle
+                        propertyId={prop._id.toString()}
+                        initialIsWishlisted={isSaved}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <CardHeader className="p-4 flex flex-col gap-1 text-left">
-                  <Link href={`/stays/${prop.slug}`}>
-                    <CardTitle className="text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors truncate block">
-                      {prop.title}
-                    </CardTitle>
-                  </Link>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-semibold uppercase tracking-wider">
-                    <MapPin className="h-3 w-3 text-gold-dark shrink-0" />
-                    {prop.city}, {prop.country}
-                  </p>
-                </CardHeader>
+                  <CardHeader className="p-4 flex flex-col gap-1 text-left">
+                    <Link href={`/stays/${prop.slug}`}>
+                      <CardTitle className="text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors truncate block">
+                        {prop.title}
+                      </CardTitle>
+                    </Link>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-semibold uppercase tracking-wider">
+                      <MapPin className="h-3 w-3 text-gold-dark shrink-0" />
+                      {prop.city}, {prop.country}
+                    </p>
+                  </CardHeader>
 
-                <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01]">
-                  <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
-                    ₹{prop.pricePerNight.toLocaleString("en-IN")}{" "}
-                    <span className="text-[9px] font-normal text-muted-foreground uppercase font-sans">/ night</span>
-                  </span>
-                  {prop.rating > 0 && (
-                    <span className="bg-gold/10 text-gold border border-gold/20 px-2 py-0.5 rounded-sm flex items-center gap-1 text-[9px] font-bold">
-                      <Star className="h-3 w-3 fill-gold text-gold" /> {prop.rating}
-                    </span>
-                  )}
-                </CardFooter>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
+                  <CardContent className="px-4 py-0 flex-grow text-left">
+                    <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground font-light">
+                      {prop.description}
+                    </p>
+                    
+                    {/* Details specs */}
+                    <div className="grid grid-cols-3 gap-2 border-t border-emerald-rich/5 mt-3 pt-2 text-[10px] font-medium text-emerald-rich/80 dark:text-luxury-cream/80">
+                      <div className="flex items-center gap-1.5">
+                        <BedDouble className="h-4 w-4 text-gold-dark shrink-0" />
+                        <span>{prop.bedrooms} Bed</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Bath className="h-4 w-4 text-gold-dark shrink-0" />
+                        <span>{prop.bathrooms} Bath</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Users className="h-4 w-4 text-gold-dark shrink-0" />
+                        <span>{prop.maxGuests} Guests</span>
+                      </div>
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="p-4 pt-3 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01]">
+                    <div className="bg-emerald-rich dark:bg-gold/10 px-3 py-1 rounded-sm border border-gold/20 flex flex-col items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-gold font-display leading-none">
+                        {formatCurrency(prop.pricePerNight)}
+                      </span>
+                      <span className="text-[8px] font-bold text-luxury-cream/80 dark:text-gold/80 uppercase tracking-widest mt-0.5 leading-none">/ night</span>
+                    </div>
+                    {prop.rating > 0 && (
+                      <span className="bg-gold/10 text-gold border border-gold/20 px-2 py-0.5 rounded-sm flex items-center gap-1 text-[9px] font-bold">
+                        <Star className="h-3 w-3 fill-gold text-gold" /> {prop.rating}
+                      </span>
+                    )}
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Curated Destinations Section */}
-      <section className="py-20 bg-emerald-rich/5 border-b border-gold/10 text-left">
-        <div className="max-w-7xl mx-auto px-6 w-full flex flex-col gap-10">
-          <div className="flex items-end justify-between border-b border-gold/10 pb-4">
-            <div className="flex flex-col gap-1.5">
-              <h2 className="font-display text-3xl font-light text-emerald-rich dark:text-luxury-cream">
-                Curated <span className="font-semibold text-gold">Destinations</span>
-              </h2>
-            </div>
-            <Link href="/destinations" className="text-xs font-bold text-gold hover:text-gold-light flex items-center gap-1 hover:underline tracking-wide uppercase">
-              View all destinations <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {destinationsList.map((dest) => (
-              <div key={dest.name} className="group relative h-96 rounded-sm overflow-hidden border border-gold/10 shadow-sm flex flex-col justify-end p-6">
-                {/* Background image */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={dest.image}
-                  alt={dest.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
-                <div className="relative z-10 flex flex-col gap-2">
-                  <h3 className="font-display text-2xl font-semibold text-white group-hover:text-gold transition-colors">{dest.name}</h3>
-                  <p className="text-xs text-white/70 line-clamp-2 font-light leading-relaxed">{dest.description}</p>
-                  <Link href={`/stays?destination=${encodeURIComponent(dest.name)}`} className="mt-2 self-start">
-                    <Button variant="outline" size="sm" className="border-gold/30 hover:border-gold text-gold hover:bg-gold/10 text-[10px] uppercase font-bold py-1 px-3 h-8">
-                      Explore Stays
-                    </Button>
-                  </Link>
-                </div>
+      {destinationsList.length > 0 && (
+        <section className="py-20 bg-emerald-rich/5 border-b border-gold/10 text-left">
+          <div className="max-w-7xl mx-auto px-6 w-full flex flex-col gap-10">
+            <div className="flex items-end justify-between border-b border-gold/10 pb-4">
+              <div className="flex flex-col gap-1.5">
+                <h2 className="font-display text-3xl font-light text-emerald-rich dark:text-luxury-cream">
+                  Curated <span className="font-semibold text-gold">Destinations</span>
+                </h2>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Bespoke Tour Packages Section */}
-      <section className="py-20 border-b border-gold/10 text-left">
-        <div className="max-w-7xl mx-auto px-6 w-full flex flex-col gap-10">
-          <div className="flex items-end justify-between border-b border-gold/10 pb-4">
-            <div className="flex flex-col gap-1.5">
-              <h2 className="font-display text-3xl font-light text-emerald-rich dark:text-luxury-cream">
-                Bespoke <span className="font-semibold text-gold">Excursions & Packages</span>
-              </h2>
+              <Link href="/destinations" className="text-xs font-bold text-gold hover:text-gold-light flex items-center gap-1 hover:underline tracking-wide uppercase">
+                View all destinations <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
-            <Link href="/experiences" className="text-xs font-bold text-gold hover:text-gold-light flex items-center gap-1 hover:underline tracking-wide uppercase">
-              View all excursions <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {packagesList.map((pack) => (
-              <Card key={pack.title} className="group border border-gold/10 relative overflow-hidden bg-white dark:bg-emerald-deep/40 shadow-sm rounded-sm h-[30rem] flex flex-col justify-between">
-                {/* Photo container */}
-                <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {destinationsList.map((dest) => (
+                <div key={dest.name} className="group relative h-96 rounded-sm overflow-hidden border border-gold/10 shadow-sm flex flex-col justify-end p-6">
+                  {/* Background image */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={pack.image}
-                    alt={pack.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    src={dest.image}
+                    alt={dest.name}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
+                  
+                  {/* Stays Count Badge */}
+                  <div className="absolute top-4 left-4 z-10 bg-emerald-deep/80 backdrop-blur-md px-3 py-1 border border-gold/20 rounded-sm">
+                    <span className="text-[9px] font-bold text-gold tracking-widest uppercase">
+                      {dest.propertiesCount} {dest.propertiesCount === 1 ? "Stay" : "Stays"}
+                    </span>
+                  </div>
+
+                  <div className="relative z-10 flex flex-col gap-2">
+                    <h3 className="font-display text-2xl font-semibold text-white group-hover:text-gold transition-colors">{dest.name}</h3>
+                    <p className="text-xs text-white/70 line-clamp-2 font-light leading-relaxed">{dest.description}</p>
+                    
+                    {/* Popular Spots horizontal thumbnails row / list */}
+                    {dest.popularSpots && dest.popularSpots.length > 0 && (
+                      <div className="flex flex-col gap-1 mt-1 text-left">
+                        <span className="text-[9px] font-bold text-gold uppercase tracking-wider">
+                          Highlights:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5 pb-1">
+                          {dest.popularSpots.map((spot: any, idx: number) => (
+                            <div key={idx} className="bg-white/10 backdrop-blur-md px-2 py-0.5 border border-white/10 rounded-sm text-[9px] text-white shrink-0" title={spot.activities.join(', ')}>
+                              {spot.name}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <Link href={`/stays?destination=${encodeURIComponent(dest.name)}`} className="mt-2 self-start">
+                      <Button variant="outline" size="sm" className="border-gold/30 hover:border-gold text-gold hover:bg-gold/10 text-[10px] uppercase font-bold py-1 px-3 h-8">
+                        Explore Stays
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-                <CardHeader className="p-4 flex flex-col gap-1 text-left flex-grow">
-                  <div className="flex items-start justify-between gap-4">
-                    <h3 className="font-display text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors line-clamp-1 block">
-                      {pack.title}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-semibold">
-                    <span>📍 {pack.location.split(",")[0]}</span>
-                    <span>⏱️ {pack.duration}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed mt-2 font-light">
-                    {pack.description}
-                  </p>
-                </CardHeader>
-                <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01] shrink-0">
-                  <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
-                    ₹{pack.price.toLocaleString("en-IN")}
-                  </span>
-                  <Link href="/experiences">
-                    <Button variant="luxury" size="sm" className="h-8 py-0 px-4 text-xs font-bold">Inquire Details</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* Bespoke Tour Packages Section */}
+      {packagesList.length > 0 && (
+        <section className="py-20 border-b border-gold/10 text-left">
+          <div className="max-w-7xl mx-auto px-6 w-full flex flex-col gap-10">
+            <div className="flex items-end justify-between border-b border-gold/10 pb-4">
+              <div className="flex flex-col gap-1.5">
+                <h2 className="font-display text-3xl font-light text-emerald-rich dark:text-luxury-cream">
+                  Bespoke <span className="font-semibold text-gold">Excursions & Packages</span>
+                </h2>
+              </div>
+              <Link href="/experiences" className="text-xs font-bold text-gold hover:text-gold-light flex items-center gap-1 hover:underline tracking-wide uppercase">
+                View all excursions <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {packagesList.map((pack) => (
+                <Card key={pack.title} className="group border border-gold/10 relative overflow-hidden bg-white dark:bg-emerald-deep/40 shadow-sm rounded-sm h-[30rem] flex flex-col justify-between">
+                  {/* Photo container */}
+                  <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={pack.image}
+                      alt={pack.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  </div>
+                  <CardHeader className="p-4 flex flex-col gap-1 text-left flex-grow">
+                    <div className="flex items-start justify-between gap-4">
+                      <h3 className="font-display text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors line-clamp-1 block">
+                        {pack.title}
+                      </h3>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground font-semibold mt-1">
+                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 text-gold-dark shrink-0" /> {pack.location}</span>
+                      <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-gold-dark shrink-0" /> {pack.duration}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed mt-2 font-light">
+                      {pack.description}
+                    </p>
+                  </CardHeader>
+                  <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01] shrink-0">
+                    <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
+                      {formatCurrency(pack.price)}
+                    </span>
+                    <Link href="/experiences">
+                      <Button variant="luxury" size="sm" className="h-8 py-0 px-4 text-xs font-bold">Inquire Details</Button>
+                    </Link>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <Footer />
     </div>

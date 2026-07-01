@@ -13,56 +13,18 @@ export const metadata = {
   description: "Enhance your stay with Stayora's exclusive luxury experiences, including private yacht charters, helicopter transfers, and Michelin-starred dining.",
 };
 
-const defaultExperiences = [
-  {
-    title: "Mediterranean Yacht Charter",
-    description: "Cruise the French Riviera or Amalfi Coast aboard a private 80ft luxury yacht. The day includes a dedicated skipper, chef-curated seafood lunch, champagne bar, and water sports equipment.",
-    duration: "Full Day (8 Hours)",
-    price: 4500,
-    location: "St. Tropez / Positano",
-    image: "https://images.unsplash.com/photo-1544085311-11a028465b03?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    title: "Alpine Helicopter Transfer",
-    description: "Skip the roads and glide over the Swiss Alps with a scenic helicopter flight to Zermatt, featuring panoramic Matterhorn views and direct landing access.",
-    duration: "Flight (45 Minutes)",
-    price: 1800,
-    location: "Zermatt, Switzerland",
-    image: "https://images.unsplash.com/photo-1508873699372-7aeab60b44ab?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    title: "Private Kaiseki Dining",
-    description: "A multi-course Japanese culinary masterpiece prepared in your private Ryokan kitchen by a Michelin-starred master chef, featuring seasonal Kyoto ingredients and sake pairing.",
-    duration: "Evening (3 Hours)",
-    price: 650,
-    location: "Kyoto, Japan",
-    image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    title: "Desert Slot Canyon Exploration",
-    description: "A private, geologist-led excursion into private slot canyons in southern Utah. Includes gourmet desert picnic, custom photography session, and sunset wine tasting.",
-    duration: "Half Day (5 Hours)",
-    price: 1200,
-    location: "Canyon Point, Utah",
-    image: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=800&q=80",
-  },
-];
-
 export default async function ExperiencesPage() {
   await connectToDatabase();
   const dbPackages = await TourPackage.find().sort({ createdAt: -1 });
 
-  // Map database entries or fall back to high-res design items
-  const experiences = dbPackages.length > 0 
-    ? dbPackages.map((p) => ({
-        title: p.title,
-        description: p.description,
-        duration: p.duration,
-        price: p.price,
-        location: p.location,
-        image: p.image,
-      }))
-    : defaultExperiences;
+  const experiences = dbPackages.map((p) => ({
+    title: p.title,
+    description: p.description,
+    duration: p.duration,
+    price: p.price,
+    location: p.location,
+    image: p.image,
+  }));
 
   return (
     <div className="min-h-screen flex flex-col bg-luxury-cream dark:bg-emerald-deep font-sans">
@@ -87,45 +49,60 @@ export default async function ExperiencesPage() {
 
       {/* Experiences Grid */}
       <section className="flex-1 max-w-7xl mx-auto px-6 py-20 w-full flex flex-col gap-12 text-left">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {experiences.map((exp) => (
-            <Card key={exp.title} className="group border border-gold/10 relative overflow-hidden bg-white dark:bg-emerald-deep/40 shadow-sm rounded-sm h-[30rem] flex flex-col justify-between">
-              {/* Image Panel */}
-              <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={exp.image}
-                  alt={exp.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              </div>
-
-              {/* Details Header */}
-              <CardHeader className="p-4 flex flex-col gap-1 text-left flex-grow">
-                <CardTitle className="text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors line-clamp-1 block">
-                  {exp.title}
-                </CardTitle>
-                <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground font-semibold">
-                  <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3 text-gold-dark shrink-0" /> {exp.location.split(",")[0]}</span>
-                  <span className="flex items-center gap-0.5"><Clock className="h-3 w-3 text-gold-dark shrink-0" /> {exp.duration.split(" ")[0]} {exp.duration.split(" ")[1] || ""}</span>
+        {experiences.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {experiences.map((exp) => (
+              <Card key={exp.title} className="group border border-gold/10 relative overflow-hidden bg-white dark:bg-emerald-deep/40 shadow-sm rounded-sm h-[30rem] flex flex-col justify-between">
+                {/* Image Panel */}
+                <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={exp.image}
+                    alt={exp.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
                 </div>
-                <CardDescription className="line-clamp-3 text-xs leading-relaxed mt-2">
-                  {exp.description}
-                </CardDescription>
-              </CardHeader>
 
-              {/* Price & Action Footer */}
-              <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01] shrink-0">
-                <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
-                  From {formatCurrency(exp.price)}{" "}
-                </span>
-                <Button variant="luxury" size="sm" className="h-8 py-0 px-4 text-xs font-bold">
-                  Inquire Details
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+                {/* Details Header */}
+                <CardHeader className="p-4 flex flex-col gap-1 text-left flex-grow">
+                  <CardTitle className="text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors line-clamp-1 block">
+                    {exp.title}
+                  </CardTitle>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground font-semibold">
+                    <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3 text-gold-dark shrink-0" /> {exp.location.split(",")[0]}</span>
+                    <span className="flex items-center gap-0.5"><Clock className="h-3 w-3 text-gold-dark shrink-0" /> {exp.duration.split(" ")[0]} {exp.duration.split(" ")[1] || ""}</span>
+                  </div>
+                  <CardDescription className="line-clamp-3 text-xs leading-relaxed mt-2">
+                    {exp.description}
+                  </CardDescription>
+                </CardHeader>
+
+                {/* Price & Action Footer */}
+                <CardFooter className="p-4 pt-0 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01] shrink-0">
+                  <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
+                    From {formatCurrency(exp.price)}{" "}
+                  </span>
+                  <a
+                    href={`https://wa.me/919876543210?text=Hi%20Stayora%2C%20I%20am%20interested%20in%20inquiring%20details%20about%20the%20experience%3A%20${encodeURIComponent(exp.title)}.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button variant="luxury" size="sm" className="h-8 py-0 px-4 text-xs font-bold">
+                      Inquire Details
+                    </Button>
+                  </a>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-center p-16 border border-dashed border-gold/20 rounded-sm bg-white dark:bg-emerald-deep">
+            <h3 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold mb-2">No Experiences Found</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mb-6">
+              We couldn&apos;t find any bespoke excursions in our portfolio at this time. Please contact our concierge desk for custom bookings.
+            </p>
+          </div>
+        )}
 
         {/* Banner Section */}
         <div className="mt-12 p-8 border border-gold/20 bg-emerald-rich/5 rounded-sm flex flex-col md:flex-row items-center justify-between gap-6">
@@ -138,7 +115,14 @@ export default async function ExperiencesPage() {
               </p>
             </div>
           </div>
-          <Button variant="primary" size="md" className="shrink-0">Request Custom Itinerary</Button>
+          <a
+            href="https://wa.me/919876543210?text=Hi%20Stayora%2C%20I%20would%20like%20to%20request%20a%20Custom%20Luxury%20Itinerary%20for%20my%20upcoming%20travels."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0"
+          >
+            <Button variant="primary" size="md" className="w-full">Request Custom Itinerary</Button>
+          </a>
         </div>
       </section>
 

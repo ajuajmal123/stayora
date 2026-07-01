@@ -186,6 +186,7 @@ export default async function PropertyDetailsPage({
           maxGuests={property.maxGuests}
           initialReviews={reviews}
           isWishlisted={isSaved}
+          unavailableDates={property.unavailableDates || []}
         />
 
         {/* Static Description & Specifications */}

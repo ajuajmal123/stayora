@@ -69,29 +69,7 @@ export const WishlistToggle: React.FC<WishlistToggleProps> = ({
     }
   };
 
-  return (
-    <motion.button
-      type="button"
-      onClick={handleToggle}
-      whileHover={{ scale: 1.15 }}
-      whileTap={{ scale: 0.9 }}
-      className={cn(
-        "flex items-center justify-center p-2 rounded-full backdrop-blur-md transition-all duration-300 border focus:outline-none",
-        isWishlisted
-          ? "bg-gold/90 border-gold text-emerald-deep shadow-md"
-          : "bg-emerald-deep/40 border-luxury-cream/15 text-luxury-cream hover:bg-emerald-deep/70 hover:border-gold/30",
-        className
-      )}
-      aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-    >
-      <Heart
-        className={cn(
-          "h-4.5 w-4.5 transition-all duration-300",
-          isWishlisted ? "fill-emerald-deep stroke-emerald-deep" : "stroke-current"
-        )}
-      />
-    </motion.button>
-  );
+  return null;
 };
 
 export default WishlistToggle;

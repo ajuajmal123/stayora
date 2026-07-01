@@ -45,16 +45,14 @@ export const Navbar: React.FC = () => {
     { name: "Stays", href: "/stays" },
     { name: "Experiences", href: "/experiences" },
     { name: "Destinations", href: "/destinations" },
-    { name: "About Us", href: "#" },
+    { name: "About Us", href: "/about" },
   ];
 
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-40 transition-all duration-500",
-        isScrolled
-          ? "bg-emerald-deep/95 backdrop-blur-md border-b border-gold/15 py-3 shadow-lg"
-          : "bg-transparent py-5"
+        "fixed top-0 left-0 right-0 z-40 transition-all duration-500 bg-emerald-deep/95 backdrop-blur-md border-b border-gold/15 shadow-lg",
+        isScrolled ? "py-3" : "py-5"
       )}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
@@ -88,9 +86,7 @@ export const Navbar: React.FC = () => {
 
         {/* Desktop Auth Controls */}
         <div className="hidden md:flex items-center gap-4 min-w-[80px] justify-end">
-          {!mounted || (!isInitialized && isLoading) ? (
-            <div className="h-9 w-9 rounded-full bg-gold/5 border border-gold/10 animate-pulse" />
-          ) : isAuthenticated && user ? (
+          {isAuthenticated && user && user.role === "admin" ? (
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -112,11 +108,9 @@ export const Navbar: React.FC = () => {
                   <p className="text-xs uppercase tracking-wider text-luxury-cream/80 font-bold group-hover:text-gold transition-colors">
                     {user.name}
                   </p>
-                  {user.role !== "user" && (
-                    <span className="text-[9px] uppercase tracking-widest text-gold font-medium">
-                      {user.role}
-                    </span>
-                  )}
+                  <span className="text-[9px] uppercase tracking-widest text-gold font-medium">
+                    Admin
+                  </span>
                 </div>
               </button>
 
@@ -135,33 +129,15 @@ export const Navbar: React.FC = () => {
                       className="absolute right-0 mt-3 w-56 rounded-sm bg-emerald-deep border border-gold/20 shadow-xl py-2 z-10 font-sans"
                     >
                       <div className="px-4 py-2 border-b border-gold/10">
-                        <p className="text-xs text-luxury-cream/60">Signed in as</p>
+                        <p className="text-xs text-luxury-cream/60 font-medium">Signed in as Admin</p>
                         <p className="text-sm font-semibold text-luxury-cream truncate">{user.email}</p>
                       </div>
 
-                      {user.role === "admin" && (
-                        <Link
-                          href="/admin"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-luxury-cream/80 hover:bg-emerald-accent hover:text-gold transition-colors"
-                        >
-                          <Shield className="h-4 w-4 text-gold" /> Admin Console
-                        </Link>
-                      )}
-
-                      {(user.role === "agent" || user.role === "admin") && (
-                        <Link
-                          href="/admin"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-luxury-cream/80 hover:bg-emerald-accent hover:text-gold transition-colors"
-                        >
-                          <Building className="h-4 w-4 text-gold" /> Host Dashboard
-                        </Link>
-                      )}
-
                       <Link
-                        href="/dashboard"
+                        href="/admin"
                         className="flex items-center gap-3 px-4 py-2 text-sm text-luxury-cream/80 hover:bg-emerald-accent hover:text-gold transition-colors"
                       >
-                        <Key className="h-4 w-4 text-gold" /> Bookings & Wishlist
+                        <Shield className="h-4 w-4 text-gold" /> Admin Console
                       </Link>
 
                       <button
@@ -175,15 +151,7 @@ export const Navbar: React.FC = () => {
                 )}
               </AnimatePresence>
             </div>
-          ) : (
-            <div className="flex items-center">
-              <Link href="/login">
-                <Button variant="outline" size="sm" className="border-gold/45 hover:bg-gold/10 text-luxury-cream text-xs px-6 h-9 tracking-wider uppercase font-semibold">
-                  Login
-                </Button>
-              </Link>
-            </div>
-          )}
+          ) : null}
         </div>
 
         {/* Mobile Menu Button */}
@@ -215,66 +183,43 @@ export const Navbar: React.FC = () => {
                 </Link>
               ))}
 
-              <hr className="border-gold/10 my-1" />
-
-              {!mounted || (!isInitialized && isLoading) ? (
-                <div className="h-10 w-full bg-gold/5 border border-gold/10 animate-pulse rounded-sm" />
-              ) : isAuthenticated && user ? (
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full border border-gold/30 bg-emerald-accent flex items-center justify-center text-gold font-bold text-sm">
-                      {user.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={user.avatar}
-                          alt={user.name}
-                          className="h-full w-full object-cover rounded-full"
-                        />
-                      ) : (
-                        getInitials(user.name)
-                      )}
+              {isAuthenticated && user && user.role === "admin" && (
+                <>
+                  <hr className="border-gold/10 my-1" />
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full border border-gold/30 bg-emerald-accent flex items-center justify-center text-gold font-bold text-sm shrink-0 overflow-hidden">
+                        {user.avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={user.avatar}
+                            alt={user.name}
+                            className="h-full w-full object-cover rounded-full"
+                          />
+                        ) : (
+                          getInitials(user.name)
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-luxury-cream uppercase">{user.name}</p>
+                        <span className="text-[10px] text-gold uppercase tracking-wider">Admin</span>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-luxury-cream uppercase">{user.name}</p>
-                      {user.role !== "user" && (
-                        <span className="text-[10px] text-gold uppercase tracking-wider">{user.role}</span>
-                      )}
-                    </div>
-                  </div>
 
-                  {user.role === "admin" && (
                     <Link href="/admin" className="text-xs uppercase tracking-wider font-semibold text-luxury-cream/80 hover:text-gold">
                       Admin Console
                     </Link>
-                  )}
 
-                  {(user.role === "agent" || user.role === "admin") && (
-                    <Link href="/admin" className="text-xs uppercase tracking-wider font-semibold text-luxury-cream/80 hover:text-gold">
-                      Host Dashboard
-                    </Link>
-                  )}
-
-                  <Link href="/dashboard" className="text-xs uppercase tracking-wider font-semibold text-luxury-cream/80 hover:text-gold">
-                    My Bookings
-                  </Link>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => logout()}
-                    className="w-full text-red-400 border-red-400 hover:bg-red-400/10 hover:text-red-300 mt-2"
-                  >
-                    Logout
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  <Link href="/login" className="w-full">
-                    <Button variant="outline" size="sm" className="w-full">
-                      Sign In
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => logout()}
+                      className="w-full text-red-400 border-red-400 hover:bg-red-400/10 hover:text-red-300 mt-2"
+                    >
+                      Logout
                     </Button>
-                  </Link>
-                </div>
+                  </div>
+                </>
               )}
             </div>
           </motion.div>

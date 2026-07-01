@@ -90,6 +90,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       maxGuests,
       images,
       destination,
+      unavailableDates,
     } = body;
 
     // Process images
@@ -126,6 +127,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     if (maxGuests !== undefined) property.maxGuests = maxGuests;
     if (images !== undefined) property.images = uploadedImages;
     if (destination !== undefined) property.destination = destination || null;
+    if (unavailableDates !== undefined) property.unavailableDates = unavailableDates;
 
     // Ensure slug regenerates if title has changed and slug wasn't manually passed
     if (title !== undefined && body.slug === undefined) {

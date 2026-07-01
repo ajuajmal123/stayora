@@ -92,6 +92,10 @@ const propertySchema = new Schema(
       ref: "Destination",
       default: null,
     },
+    unavailableDates: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,

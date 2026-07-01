@@ -69,22 +69,10 @@ export async function POST(req: NextRequest) {
       throw new ConflictError("You have already reviewed this luxury property.");
     }
 
-    // We fallback to creating a mock booking if one doesn't exist so developers can write reviews without bookings.
-    let bookingId = userBooking?._id;
-    if (!bookingId) {
-      // Find any completed/pending booking or create a dummy booking link for tracking
-      const dummyBooking = await Booking.create({
-        property: parsed.propertyId,
-        user: userId,
-        checkIn: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        checkOut: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        totalPrice: property.pricePerNight * 5,
-        guests: 2,
-        status: "completed",
-        paymentStatus: "paid",
-      });
-      bookingId = dummyBooking._id;
+    if (!userBooking) {
+      throw new ValidationError("You must have a completed booking for this luxury property to submit a review.");
     }
+    const bookingId = userBooking._id;
 
     // Create the review
     const newReview = await Review.create({

@@ -10,7 +10,11 @@ const bookingSchema = new Schema(
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "User reference is required"],
+      required: false,
+    },
+    name: {
+      type: String,
+      required: [true, "Name is required"],
     },
     email: {
       type: String,

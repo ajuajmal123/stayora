@@ -7,6 +7,7 @@ import Destination from "@/models/Destination";
 import Review from "@/models/Review";
 import HeroBanner from "@/models/HeroBanner";
 import Booking from "@/models/Booking";
+import TourPackage from "@/models/TourPackage";
 import { ApiResponse } from "@/lib/api-response";
 
 export async function GET(req: NextRequest) {
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
     await Review.deleteMany({});
     await HeroBanner.deleteMany({});
     await Booking.deleteMany({});
+    await TourPackage.deleteMany({});
 
     console.log("🧹 Database cleared");
 
@@ -413,6 +415,49 @@ export async function GET(req: NextRequest) {
     });
 
     console.log("🎇 Hero Banner seeded");
+
+    // 6. Create TourPackages
+    const tourPackagesData = [
+      {
+        title: "Mediterranean Yacht Charter",
+        description: "Cruise the French Riviera or Amalfi Coast aboard a private 80ft luxury yacht. The day includes a dedicated skipper, chef-curated seafood lunch, champagne bar, and water sports equipment.",
+        duration: "Full Day (8 Hours)",
+        price: 360000,
+        location: "St. Tropez / Positano",
+        image: "https://images.unsplash.com/photo-1544085311-11a028465b03?auto=format&fit=crop&w=800&q=80",
+        isFeatured: true,
+      },
+      {
+        title: "Alpine Helicopter Transfer",
+        description: "Skip the roads and glide over the Swiss Alps with a scenic helicopter flight to Zermatt, featuring panoramic Matterhorn views and direct landing access.",
+        duration: "Flight (45 Minutes)",
+        price: 150000,
+        location: "Zermatt, Switzerland",
+        image: "https://images.unsplash.com/photo-1508873699372-7aeab60b44ab?auto=format&fit=crop&w=800&q=80",
+        isFeatured: true,
+      },
+      {
+        title: "Private Kaiseki Dining",
+        description: "A multi-course Japanese culinary masterpiece prepared in your private Ryokan kitchen by a Michelin-starred master chef, featuring seasonal Kyoto ingredients and sake pairing.",
+        duration: "Evening (3 Hours)",
+        price: 54000,
+        location: "Kyoto, Japan",
+        image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
+        isFeatured: false,
+      },
+      {
+        title: "Desert Slot Canyon Exploration",
+        description: "A private, geologist-led excursion into private slot canyons in southern Utah. Includes gourmet desert picnic, custom photography session, and sunset wine tasting.",
+        duration: "Half Day (5 Hours)",
+        price: 100000,
+        location: "Canyon Point, Utah",
+        image: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=800&q=80",
+        isFeatured: false,
+      },
+    ];
+
+    const seededPackages = await TourPackage.create(tourPackagesData);
+    console.log("🎒 Tour Packages seeded");
     console.log("✅ Database successfully seeded!");
 
     return ApiResponse.success({
@@ -421,6 +466,7 @@ export async function GET(req: NextRequest) {
       passwordPlaceholder: "stayora123",
       propertiesCount: seededProperties.length,
       destinationsCount: seededDestinations.length,
+      packagesCount: seededPackages.length,
     });
   } catch (error) {
     return ApiResponse.error(error);

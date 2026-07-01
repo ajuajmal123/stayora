@@ -8,32 +8,17 @@ import { verifyAccessToken } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
 
-// Helper to authenticate request
-async function getAuthenticatedUserId(): Promise<string> {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get("accessToken")?.value;
-
-  if (!accessToken) {
-    throw new UnauthorizedError("Please login to create a booking request");
-  }
-
-  const decoded = verifyAccessToken(accessToken);
-  if (!decoded) {
-    throw new UnauthorizedError("Session expired. Please log in again");
-  }
-
-  return decoded.id;
-}
-
 export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
-    const userId = await getAuthenticatedUserId();
 
     const body = await req.json();
-    const { propertyId, checkIn, checkOut, guests } = body;
+    const { propertyId, checkIn, checkOut, guests, name, email } = body;
 
     // Validate inputs
+    if (!name || !email) {
+      throw new ValidationError("Name and email are required to request a reservation");
+    }
     if (!propertyId || !mongoose.isValidObjectId(propertyId)) {
       throw new ValidationError("Invalid Property ID");
     }
@@ -94,16 +79,11 @@ export async function POST(req: NextRequest) {
     // In India/UPI context, we can assume a conversion or map pricing (we'll keep direct amount for display)
     const totalPrice = baseTotal;
 
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new UnauthorizedError("User profile not found");
-    }
-
     // 4. Create the booking
     const booking = await Booking.create({
       property: propertyId,
-      user: userId,
-      email: user.email,
+      name: name,
+      email: email,
       checkIn: checkInDate,
       checkOut: checkOutDate,
       totalPrice: totalPrice,

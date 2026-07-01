@@ -144,32 +144,30 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
       {/* Header Banner */}
       <section className="bg-emerald-rich text-luxury-cream pt-32 pb-12 relative overflow-hidden">
         <div className="absolute inset-0 z-0 bg-[url('https://images.unsplash.com/photo-1486082521694-51d912a3d200?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-10" />
-        <div className="relative z-10 max-w-7xl mx-auto px-6 flex flex-col gap-3">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 flex flex-col gap-3 items-center text-center justify-center">
           <span className="text-xs uppercase tracking-[0.25em] text-gold font-bold">Stayora Portfolio</span>
           <h1 className="font-display text-4xl sm:text-5xl font-light tracking-wide">
             Luxury <span className="font-semibold text-gold">Stays & Villas</span>
           </h1>
-          <p className="text-xs sm:text-sm text-luxury-cream/70 max-w-xl">
+          <p className="text-xs sm:text-sm text-luxury-cream/70 max-w-xl mx-auto">
             Explore curated boutique listings spanning sun-drenched coastlines, historic sanctuaries, and high-alpine ski chalets.
           </p>
         </div>
       </section>
 
       {/* Workspace Grid */}
-      <section className="flex-1 max-w-7xl mx-auto px-6 py-12 w-full grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <section className="flex-1 max-w-7xl mx-auto px-6 py-12 w-full flex flex-col gap-8">
         
-        {/* Filters Sidebar */}
-        <aside className="lg:col-span-1">
-          <div className="sticky top-24">
-            <StaysFilter
-              destinations={uniqueDestinations}
-              availableAmenities={uniqueAmenities}
-            />
-          </div>
-        </aside>
+        {/* Top Dropdowns Filter Bar */}
+        <div className="w-full">
+          <StaysFilter
+            destinations={uniqueDestinations}
+            availableAmenities={uniqueAmenities}
+          />
+        </div>
 
         {/* Listings Display */}
-        <main className="lg:col-span-3 flex flex-col gap-8">
+        <main className="flex flex-col gap-8">
           
           {/* Header count and active sorting details */}
           <div className="flex items-center justify-between pb-4 border-b border-emerald-rich/5">
@@ -180,11 +178,11 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
 
           {/* Cards Grid */}
           {properties.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {properties.map((prop) => {
                 const isSaved = wishlistedIds.has(prop._id.toString());
                 return (
-                  <Card key={prop.slug} className="relative group h-[30rem] flex flex-col justify-between">
+                  <Card key={prop.slug} className="relative group h-[30rem] flex flex-col justify-between border border-gold/10 bg-white dark:bg-emerald-deep/40 shadow-sm hover:shadow-xl hover:border-gold/30 transition-all duration-500 hover:-translate-y-1">
                     
                     {/* Image gallery container */}
                     <div className="relative h-56 overflow-hidden bg-luxury-sand shrink-0">
@@ -223,12 +221,6 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
                         <Link href={`/stays/${prop.slug}`} className="truncate block flex-grow">
                           <CardTitle className="text-base font-bold text-emerald-rich dark:text-luxury-cream hover:text-gold transition-colors truncate">{prop.title}</CardTitle>
                         </Link>
-                        <div className="text-right shrink-0">
-                          <span className="text-sm font-bold text-emerald-rich dark:text-gold font-display">
-                            {formatCurrency(prop.pricePerNight)}
-                          </span>
-                          <span className="text-[9px] block text-muted-foreground font-normal uppercase font-sans mt-0.5">/ night</span>
-                        </div>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground/80 mt-1">
                         <MapPin className="h-3.5 w-3.5 text-gold-dark shrink-0" />
@@ -259,7 +251,12 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
                     </CardContent>
 
                     <CardFooter className="justify-between items-center bg-emerald-rich/[0.01] dark:bg-emerald-light/[0.005] border-t border-emerald-rich/5 px-4 py-3 mt-0 shrink-0">
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider font-sans">Premium Concierge</span>
+                      <div className="bg-emerald-rich dark:bg-gold/10 px-3 py-1 rounded-sm border border-gold/20 flex flex-col items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-gold font-display leading-none">
+                          {formatCurrency(prop.pricePerNight)}
+                        </span>
+                        <span className="text-[8px] font-bold text-luxury-cream/80 dark:text-gold/80 uppercase tracking-widest mt-0.5 leading-none">/ night</span>
+                      </div>
                       <Link href={`/stays/${prop.slug}`}>
                         <Button variant="outline" size="sm" className="h-8 py-0 text-xs font-bold px-4">Details</Button>
                       </Link>

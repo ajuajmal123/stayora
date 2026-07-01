@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
 
 // Lightweight JWT decoding for edge runtime (no node.js crypto dependency)
 function decodeJwt(token: string) {
@@ -30,31 +29,11 @@ function decodeJwt(token: string) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Define route types
-  const isAuthPage = pathname === "/login" || pathname === "/register";
   const isAdminRoute = pathname.startsWith("/admin");
-  const isAgentRoute = pathname.startsWith("/agent");
-  const isProtectedRoute = pathname.startsWith("/dashboard") || pathname.startsWith("/bookings");
-
   const accessToken = request.cookies.get("accessToken")?.value;
   const refreshToken = request.cookies.get("refreshToken")?.value;
 
   let user = accessToken ? decodeJwt(accessToken) : null;
-
-  if (!user) {
-    const nextAuthToken = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-    if (nextAuthToken) {
-      user = {
-        id: nextAuthToken.id as string,
-        email: nextAuthToken.email as string,
-        role: nextAuthToken.role as "admin" | "agent" | "user",
-      };
-    }
-  }
-
   let newCookies: string[] = [];
 
   // If access token is missing/expired, but refresh token is present, try to auto-refresh
@@ -86,44 +65,16 @@ export async function proxy(request: NextRequest) {
     return res;
   };
 
-  // 1. If user is logged in:
-  if (user) {
-    // Redirect authenticated users away from auth pages (login/register) depending on role
-    if (isAuthPage) {
-      if (user.role === "admin") {
-        return withCookies(NextResponse.redirect(new URL("/admin", request.url)));
-      }
-      return withCookies(NextResponse.redirect(new URL("/dashboard", request.url)));
-    }
-
-    // Redirect regular users away from admin routes
-    if (isAdminRoute && user.role !== "admin") {
-      return withCookies(NextResponse.redirect(new URL("/", request.url)));
-    }
-
-    // Redirect non-agents and non-admins away from agent routes
-    if (isAgentRoute && user.role !== "agent" && user.role !== "admin") {
-      return withCookies(NextResponse.redirect(new URL("/", request.url)));
-    }
-
-    return withCookies(NextResponse.next());
-  }
-
-  // 2. If user is NOT logged in:
-  if (isAuthPage) {
-    return withCookies(NextResponse.next());
-  }
-
-  // Let unauthenticated users access `/admin` so they can see the AdminLogin component
+  // Allow anyone to access /admin directly to see login modal
   if (pathname === "/admin") {
     return withCookies(NextResponse.next());
   }
 
-  // Protect admin subpaths, agent paths, and user dashboards
-  if (isAdminRoute || isAgentRoute || isProtectedRoute) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return withCookies(NextResponse.redirect(loginUrl));
+  // Protect admin subpaths if not logged in as admin
+  if (isAdminRoute) {
+    if (!user || user.role !== "admin") {
+      return withCookies(NextResponse.redirect(new URL("/admin", request.url)));
+    }
   }
 
   return withCookies(NextResponse.next());
@@ -132,10 +83,5 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/admin/:path*",
-    "/agent/:path*",
-    "/bookings/:path*",
-    "/dashboard/:path*",
-    "/login",
-    "/register",
   ],
 };

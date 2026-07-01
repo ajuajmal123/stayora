@@ -2,15 +2,12 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Star, Heart, Calendar, Users, Shield, ArrowRight, MessageSquarePlus, Compass, FileImage, Upload } from "lucide-react";
+import { Star, Calendar, Shield, Compass, FileImage, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, formatCurrency } from "@/lib/utils";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import Modal from "../ui/Modal";
-import Link from "next/link";
-import WishlistToggle from "./WishlistToggle";
-import { useAuth } from "@/hooks/useAuth";
 
 interface ReviewPayload {
   _id: string;
@@ -30,6 +27,7 @@ interface DetailInteractiveProps {
   maxGuests: number;
   initialReviews: ReviewPayload[];
   isWishlisted: boolean;
+  unavailableDates: string[];
 }
 
 export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
@@ -38,10 +36,13 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
   pricePerNight,
   maxGuests,
   initialReviews,
-  isWishlisted,
+  unavailableDates = [],
 }) => {
-  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
+
+  // Guest details for anonymous reservation enquiry
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
 
   // Booking Checkout states
   const [isBooking, setIsBooking] = useState(false);
@@ -57,8 +58,12 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
   const [paymentSuccess, setPaymentSuccess] = useState("");
 
   const handleRequestReservation = async () => {
-    if (!isAuthenticated) {
-      router.push(`/login?callbackUrl=${window.location.pathname}`);
+    if (!guestName || !guestEmail) {
+      setBookingError("Name and email are required to request a reservation.");
+      return;
+    }
+    if (!checkIn || !checkOut) {
+      setBookingError("Please select check-in and check-out dates.");
       return;
     }
 
@@ -74,6 +79,8 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
           checkIn,
           checkOut,
           guests: guestsCount,
+          name: guestName,
+          email: guestEmail,
         }),
       });
 
@@ -83,7 +90,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
         setCheckoutData(body.data);
         setIsCheckoutModalOpen(true);
         try {
-          const message = `Hello Stayora, I would like to book a stay.\n\nHere are my booking details:\n- Resort: ${body.data.propertyTitle}\n- Booking ID: ${body.data.bookingId}\n- Check-in: ${new Date(body.data.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(body.data.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${body.data.guests}\n- Total Cost: ₹${body.data.totalPrice.toLocaleString("en-IN")}`;
+          const message = `Hello Stayora, I would like to book a stay.\n\nHere are my booking details:\n- Guest Name: ${guestName}\n- Guest Email: ${guestEmail}\n- Resort: ${body.data.propertyTitle}\n- Booking ID: ${body.data.bookingId}\n- Check-in: ${new Date(body.data.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(body.data.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${body.data.guests}\n- Total Cost: ₹${body.data.totalPrice.toLocaleString("en-IN")}`;
           const whatsappUrl = `https://wa.me/918590120810?text=${encodeURIComponent(message)}`;
           window.open(whatsappUrl, "_blank");
         } catch (e) {
@@ -122,10 +129,10 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
       const body = await response.json();
 
       if (body.success) {
-        setPaymentSuccess("Your settlement receipt has been successfully logged! Redirecting to your dashboard...");
+        setPaymentSuccess("Your settlement receipt has been successfully logged! Redirecting to home page...");
         setTimeout(() => {
           setIsCheckoutModalOpen(false);
-          router.push("/dashboard");
+          router.push("/");
         }, 2000);
       } else {
         setPaymentError(body.message || "Receipt registration failed.");
@@ -171,55 +178,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
   const totalCost = baseTotal + serviceFee;
 
   // 3. Reviews management state
-  const [reviews, setReviews] = useState<ReviewPayload[]>(initialReviews);
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState("");
-  const [reviewError, setReviewError] = useState("");
-  const [reviewSuccess, setReviewSuccess] = useState("");
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setReviewError("");
-    setReviewSuccess("");
-
-    if (!comment || comment.length < 10) {
-      setReviewError("Your review must be at least 10 characters long.");
-      return;
-    }
-
-    setIsSubmittingReview(true);
-
-    try {
-      const response = await fetch("/api/reviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          propertyId,
-          rating,
-          comment,
-        }),
-      });
-
-      const body = await response.json();
-
-      if (body.success && body.data) {
-        // Add new review to list
-        setReviews((prev) => [body.data, ...prev]);
-        setReviewSuccess("Review submitted successfully! Rating updated.");
-        setComment("");
-        setRating(5);
-        router.refresh(); // Triggers server component to refetch average rating
-      } else {
-        setReviewError(body.message || "Failed to submit review.");
-      }
-    } catch (err) {
-      console.error(err);
-      setReviewError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsSubmittingReview(false);
-    }
-  };
+  const [reviews] = useState<ReviewPayload[]>(initialReviews);
 
   return (
     <>
@@ -237,14 +196,6 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
               alt="Luxury Estate Main"
               className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.01]"
             />
-            
-            <div className="absolute top-6 right-6">
-              <WishlistToggle
-                propertyId={propertyId}
-                initialIsWishlisted={isWishlisted}
-                className="scale-110 shadow-lg"
-              />
-            </div>
           </div>
 
           {/* Thumbnails grid */}
@@ -279,74 +230,6 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
               Guest Reviews ({reviews.length})
             </h3>
           </div>
-
-          {/* Review Input for authenticated users */}
-          {isAuthenticated ? (
-            <form onSubmit={handleReviewSubmit} className="bg-emerald-rich/5 border border-gold/15 p-6 rounded-sm flex flex-col gap-4">
-              <span className="text-xs uppercase tracking-wider text-emerald-rich dark:text-gold-subtle font-bold flex items-center gap-1.5">
-                <MessageSquarePlus className="h-4 w-4" /> Indite Your Guest Chronicle
-              </span>
-
-              {reviewError && (
-                <span className="text-xs text-red-500 font-medium">{reviewError}</span>
-              )}
-              {reviewSuccess && (
-                <span className="text-xs text-gold font-medium">{reviewSuccess}</span>
-              )}
-
-              {/* Star Rating select */}
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-emerald-rich/70 dark:text-luxury-cream/70">Experience Evaluation Rating:</span>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      className="text-gold focus:outline-none hover:scale-110 transition-transform"
-                    >
-                      <Star
-                        className={cn(
-                          "h-5 w-5",
-                          rating >= star ? "fill-gold text-gold" : "text-gold-subtle"
-                        )}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Comment text */}
-              <div className="flex flex-col gap-1">
-                <textarea
-                  placeholder="Reflect upon your residence, details of hospitality, and overall estate ambiance..."
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  className="w-full min-h-[100px] p-3 text-xs bg-white dark:bg-emerald-deep border border-emerald-rich/10 rounded-sm focus:outline-none focus:border-gold"
-                  required
-                />
-              </div>
-
-              <Button
-                variant="primary"
-                size="sm"
-                type="submit"
-                isLoading={isSubmittingReview}
-                className="self-end"
-              >
-                Publish Chronicle
-              </Button>
-            </form>
-          ) : (
-            <div className="p-4 bg-emerald-rich/5 border border-emerald-rich/10 text-center rounded-sm">
-              <p className="text-xs text-muted-foreground">
-                Only authenticated travelers can write reviews.{" "}
-                <Link href={`/login?callbackUrl=${window.location.pathname}`} className="text-gold hover:underline font-semibold">
-                  Sign In
-                </Link> to review.
-              </p>
-            </div>
-          )}
 
           {/* List of Reviews */}
           {reviews.length > 0 ? (
@@ -393,7 +276,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
             </div>
           ) : (
             <div className="text-center p-8 bg-emerald-rich/5 border border-dashed border-gold/15 rounded-sm">
-              <p className="text-xs text-muted-foreground">No reviews has been posted yet. Be the first to share your experience!</p>
+              <p className="text-xs text-muted-foreground">No reviews has been posted yet.</p>
             </div>
           )}
 
@@ -413,7 +296,32 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
 
           {/* Interactive Date Picker fields */}
           <div className="flex flex-col gap-4 font-sans">
-            <div className="grid grid-cols-2 gap-4">
+            {/* Guest Name & Email Input for Enquiries */}
+            <div className="flex flex-col gap-1.5 text-left">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-gold-dark">Full Name</label>
+              <Input
+                type="text"
+                placeholder="e.g. Alexander Mercer"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                required
+                className="h-10 text-xs"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5 text-left">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-gold-dark">Email Address</label>
+              <Input
+                type="email"
+                placeholder="e.g. alexander@example.com"
+                value={guestEmail}
+                onChange={(e) => setGuestEmail(e.target.value)}
+                required
+                className="h-10 text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-left">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] uppercase font-bold tracking-wider text-gold-dark">Check-In</label>
                 <input
@@ -421,7 +329,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
                   value={checkIn}
                   min={new Date().toISOString().split("T")[0]}
                   onChange={(e) => setCheckIn(e.target.value)}
-                  className="h-10 rounded-sm border border-emerald-rich/10 bg-transparent px-3 text-xs focus:ring-1 focus:ring-gold"
+                  className="h-10 rounded-sm border border-emerald-rich/10 bg-transparent px-3 text-xs focus:ring-1 focus:ring-gold text-emerald-rich dark:text-luxury-cream"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -431,21 +339,21 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
                   value={checkOut}
                   min={checkIn || new Date().toISOString().split("T")[0]}
                   onChange={(e) => setCheckOut(e.target.value)}
-                  className="h-10 rounded-sm border border-emerald-rich/10 bg-transparent px-3 text-xs focus:ring-1 focus:ring-gold"
+                  className="h-10 rounded-sm border border-emerald-rich/10 bg-transparent px-3 text-xs focus:ring-1 focus:ring-gold text-emerald-rich dark:text-luxury-cream"
                 />
               </div>
             </div>
 
             {/* Guests selection */}
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[10px] uppercase font-bold tracking-wider text-gold-dark">Travelers</label>
               <select
                 value={guestsCount}
                 onChange={(e) => setGuestsCount(parseInt(e.target.value))}
-                className="h-10 rounded-sm border border-emerald-rich/10 bg-transparent px-3 text-xs focus:ring-1 focus:ring-gold"
+                className="h-10 rounded-sm border border-emerald-rich/10 bg-transparent px-3 text-xs focus:ring-1 focus:ring-gold text-emerald-rich dark:text-luxury-cream"
               >
                 {Array.from({ length: maxGuests }).map((_, idx) => (
-                  <option key={idx + 1} value={idx + 1}>
+                  <option key={idx + 1} value={idx + 1} className="dark:bg-emerald-deep">
                     {idx + 1} Guest{idx > 0 ? "s" : ""}
                   </option>
                 ))}
@@ -453,7 +361,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
             </div>
           </div>
 
-          {/* Availability Status */}
+          {/* Availability Status Button */}
           <button
             onClick={() => setShowCalendarSim(!showCalendarSim)}
             className="flex items-center justify-between text-xs font-semibold text-gold hover:text-gold-dark transition-colors self-start gap-1"
@@ -461,7 +369,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
             <Calendar className="h-4 w-4" /> {showCalendarSim ? "Hide availability calendar" : "Show availability calendar"}
           </button>
 
-          {/* Mock Calendar Grid */}
+          {/* Real Calendar Grid from DB */}
           <AnimatePresence>
             {showCalendarSim && (
               <motion.div
@@ -471,24 +379,29 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
                 className="border border-gold/15 p-4 rounded-sm bg-emerald-rich/5 overflow-hidden text-center"
               >
                 <span className="text-[10px] uppercase tracking-wider text-emerald-rich dark:text-gold font-bold">Availability Status</span>
-                <div className="grid grid-cols-7 gap-1 mt-2 text-[10px] text-muted-foreground font-semibold">
-                  {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                    <div key={d} className="py-1">{d}</div>
-                  ))}
+                <div className="grid grid-cols-5 gap-2 mt-2 text-[10px] text-muted-foreground font-semibold">
                   {Array.from({ length: 30 }).map((_, idx) => {
-                    const dayNum = idx + 1;
-                    const isBooked = [4, 5, 6, 12, 13, 14, 21, 22].includes(dayNum);
+                    const date = new Date();
+                    date.setDate(date.getDate() + idx);
+                    const dayNum = date.getDate();
+                    const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
+                    
+                    const isBooked = unavailableDates.includes(dateStr);
                     return (
                       <div
                         key={idx}
                         className={cn(
-                          "py-1.5 rounded-sm border font-medium",
+                          "py-1.5 rounded-sm border font-medium flex flex-col items-center justify-center min-w-[40px] select-none",
                           isBooked
                             ? "bg-red-400/10 border-transparent text-red-400 line-through cursor-not-allowed"
                             : "bg-emerald-rich/5 border-transparent text-emerald-rich dark:text-luxury-cream"
                         )}
+                        title={isBooked ? "Booked / Blocked" : "Available"}
                       >
-                        {dayNum}
+                        <span className="font-bold text-xs">{dayNum}</span>
+                        <span className="text-[7px] text-muted-foreground font-semibold tracking-tighter uppercase mt-0.5">
+                          {date.toLocaleDateString("en-US", { month: "short" })}
+                        </span>
                       </div>
                     );
                   })}
@@ -521,7 +434,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
             variant="luxury"
             size="lg"
             className="w-full mt-2"
-            disabled={!checkIn || !checkOut}
+            disabled={!checkIn || !checkOut || !guestName || !guestEmail}
             isLoading={isBooking}
             onClick={handleRequestReservation}
           >
@@ -547,12 +460,12 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
 
     </div>
 
-      {/* UPI Checkout & Settlement Receipt submission modal */}
+      {/* UPI Checkout & Settlement modal */}
       <Modal
         isOpen={isCheckoutModalOpen}
         onClose={() => {
           setIsCheckoutModalOpen(false);
-          router.push("/dashboard"); // Redirect to dashboard to check state
+          router.push("/");
         }}
         title="Submit UPI Transaction Settlement Reference"
       >
@@ -588,7 +501,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
           {checkoutData && (
             <a
               href={`https://wa.me/918590120810?text=${encodeURIComponent(
-                `Hello Stayora, I would like to book a stay.\n\nHere are my booking details:\n- Resort: ${checkoutData.propertyTitle}\n- Booking ID: ${checkoutData.bookingId}\n- Check-in: ${new Date(checkoutData.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(checkoutData.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${checkoutData.guests}\n- Total Cost: ₹${checkoutData.totalPrice.toLocaleString("en-IN")}`
+                `Hello Stayora, I would like to book a stay.\n\nHere are my booking details:\n- Guest Name: ${guestName}\n- Guest Email: ${guestEmail}\n- Resort: ${checkoutData.propertyTitle}\n- Booking ID: ${checkoutData.bookingId}\n- Check-in: ${new Date(checkoutData.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(checkoutData.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${checkoutData.guests}\n- Total Cost: ₹${checkoutData.totalPrice.toLocaleString("en-IN")}`
               )}`}
               target="_blank"
               rel="noopener noreferrer"

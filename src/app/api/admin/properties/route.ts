@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
       maxGuests,
       images,
       destination,
+      unavailableDates,
     } = body;
 
     // Validation
@@ -108,6 +109,7 @@ export async function POST(req: NextRequest) {
       images: uploadedImages,
       agent: admin._id,
       destination: destination || null,
+      unavailableDates: unavailableDates || [],
     });
 
     await newProperty.save();

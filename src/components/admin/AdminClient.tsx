@@ -101,7 +101,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     bathrooms: "1",
     maxGuests: "2",
     images: [] as string[],
-    destination: ""
+    destination: "",
+    unavailableDates: ""
   });
   const [propertyError, setPropertyError] = useState("");
   const [isSavingProperty, setIsSavingProperty] = useState(false);
@@ -300,7 +301,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
         bedrooms: Number(propertyForm.bedrooms),
         bathrooms: Number(propertyForm.bathrooms),
         maxGuests: Number(propertyForm.maxGuests),
-        amenities: propertyForm.amenities.split(",").map((s) => s.trim()).filter(Boolean)
+        amenities: propertyForm.amenities.split(",").map((s) => s.trim()).filter(Boolean),
+        unavailableDates: propertyForm.unavailableDates.split(",").map((s) => s.trim()).filter(Boolean)
       };
 
       const res = await fetch(url, {
@@ -348,7 +350,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       bathrooms: property.bathrooms.toString(),
       maxGuests: property.maxGuests.toString(),
       images: property.images || [],
-      destination: property.destination?._id || property.destination || ""
+      destination: property.destination?._id || property.destination || "",
+      unavailableDates: (property.unavailableDates || []).join(", ")
     });
     setIsPropertyModalOpen(true);
   };
@@ -369,7 +372,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       bathrooms: "2",
       maxGuests: "4",
       images: [],
-      destination: ""
+      destination: "",
+      unavailableDates: ""
     });
     setIsPropertyModalOpen(true);
   };
@@ -1105,8 +1109,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
                       {/* User details */}
                       <td className="p-4 min-w-[10rem]">
-                        <span className="font-bold block">{b.user?.name || "Guest Profile Unavailable"}</span>
-                        <span className="text-[10px] text-muted-foreground block">{b.user?.email}</span>
+                        <span className="font-bold block">{b.name || b.user?.name || "Guest Profile Unavailable"}</span>
+                        <span className="text-[10px] text-muted-foreground block">{b.email || b.user?.email}</span>
                         {b.user?.phoneNumber && (
                           <span className="text-[10px] text-muted-foreground block mt-0.5">{b.user.phoneNumber}</span>
                         )}
@@ -1703,6 +1707,15 @@ export const AdminClient: React.FC<AdminClientProps> = ({
               onChange={(e) => setPropertyForm((prev) => ({ ...prev, description: e.target.value }))}
             />
           </div>
+
+          <Input
+            id="estate-unavailable-dates"
+            label="Blocked Availability Dates (comma-separated YYYY-MM-DD)"
+            type="text"
+            placeholder="e.g. 2026-07-04, 2026-07-05, 2026-07-12"
+            value={propertyForm.unavailableDates}
+            onChange={(e) => setPropertyForm((prev) => ({ ...prev, unavailableDates: e.target.value }))}
+          />
 
           {/* Image Upload Gallery */}
           <div className="flex flex-col gap-2">
