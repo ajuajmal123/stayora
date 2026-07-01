@@ -59,6 +59,68 @@ export async function GET(req: NextRequest) {
   }
 }
 
+export async function POST(req: NextRequest) {
+  try {
+    await connectToDatabase();
+    await verifyAdmin();
+
+    const body = await req.json();
+    const { propertyId, name, email, checkIn, checkOut, guests, totalPrice, status, paymentStatus } = body;
+
+    // Validation
+    if (!name || !email || !propertyId || !mongoose.isValidObjectId(propertyId) || !checkIn || !checkOut || guests === undefined || totalPrice === undefined) {
+      throw new ValidationError("Missing required booking creation details");
+    }
+
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+      throw new ValidationError("Invalid date formats");
+    }
+
+    const property = await Property.findById(propertyId);
+    if (!property) {
+      throw new NotFoundError("Luxury property not found");
+    }
+
+    const bookingStatus = status || "pending";
+    const payment = paymentStatus || "unpaid";
+
+    const newBooking = new Booking({
+      property: propertyId,
+      name,
+      email,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      guests: Number(guests),
+      totalPrice: Number(totalPrice),
+      status: bookingStatus,
+      paymentStatus: payment,
+    });
+
+    await newBooking.save();
+
+    // Trigger confirmation email with PDF if confirmed immediately
+    if (bookingStatus === "confirmed") {
+      sendBookingConfirmationEmail(email, newBooking, property).catch((err) => {
+        console.error("Manual booking email sending error:", err);
+      });
+    }
+
+    // Populate property details before returning
+    const populatedBooking = await Booking.findById(newBooking._id)
+      .populate({
+        path: "property",
+        model: Property,
+        select: "_id title city images pricePerNight",
+      });
+
+    return ApiResponse.success(populatedBooking, "Custom booking created successfully");
+  } catch (error) {
+    return ApiResponse.error(error);
+  }
+}
+
 export async function PUT(req: NextRequest) {
   try {
     await connectToDatabase();

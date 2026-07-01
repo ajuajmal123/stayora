@@ -6,6 +6,8 @@ interface BookingDetails {
   checkOut: Date | string;
   guests: number;
   totalPrice: number;
+  name?: string;
+  email?: string;
 }
 
 interface PropertyDetails {
@@ -13,6 +15,99 @@ interface PropertyDetails {
   city: string;
   country: string;
   address: string;
+}
+
+/**
+ * Generates a valid PDF-1.4 file buffer containing the booking details.
+ */
+function generateBookingPdfBuffer(booking: any, property: any): Buffer {
+  const checkInStr = new Date(booking.checkIn).toLocaleDateString("en-IN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const checkOutStr = new Date(booking.checkOut).toLocaleDateString("en-IN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const priceFormatted = booking.totalPrice.toLocaleString("en-IN");
+
+  const streamContent = `BT
+/F1 20 Tf
+70 760 Td
+(STAYORA LUXURY RETREATS) Tj
+/F1 14 Tf
+0 -40 Td
+(Booking Confirmation Receipt) Tj
+/F1 10 Tf
+0 -40 Td
+(Booking Reference ID: ${booking._id}) Tj
+0 -25 Td
+(Guest Name: ${booking.name || "Guest"}) Tj
+0 -25 Td
+(Guest Email: ${booking.email || ""}) Tj
+0 -25 Td
+(Luxury Estate: ${property.title}) Tj
+0 -25 Td
+(Street Location: ${property.address}) Tj
+0 -25 Td
+(City & Country: ${property.city}, ${property.country}) Tj
+0 -25 Td
+(Check-in Date: ${checkInStr}) Tj
+0 -25 Td
+(Check-out Date: ${checkOutStr}) Tj
+0 -25 Td
+(Guests Permitted: ${booking.guests} Person\\(s\\)) Tj
+0 -25 Td
+(Total Billing Amount: Rs. ${priceFormatted} INR) Tj
+0 -40 Td
+(Thank you for booking with Stayora. Your bespoke sanctuary is confirmed.) Tj
+ET`;
+
+  const streamLen = Buffer.byteLength(streamContent, "utf-8");
+
+  const pdfHeader = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 595 842] /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>
+endobj
+5 0 obj
+<< /Length ${streamLen} >>
+stream
+`;
+
+  const pdfFooter = `
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000212 00000 n 
+0000000293 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+860
+%%EOF
+`;
+
+  return Buffer.concat([
+    Buffer.from(pdfHeader, "utf-8"),
+    Buffer.from(streamContent, "utf-8"),
+    Buffer.from(pdfFooter, "utf-8"),
+  ]);
 }
 
 /**
@@ -164,7 +259,7 @@ export async function sendBookingConfirmationEmail(
           <div class="content">
             <p class="welcome">Dear Traveler,</p>
             <p class="welcome">
-              We are delighted to inform you that your premium stay reservation at <strong>${property.title}</strong> has been officially confirmed by our concierge team.
+              We are delighted to inform you that your premium stay reservation at <strong>${property.title}</strong> has been officially confirmed by our concierge team. We have attached a PDF copy of your confirmation receipt for your records.
             </p>
             
             <div class="card">
@@ -212,6 +307,13 @@ export async function sendBookingConfirmationEmail(
     </html>
   `;
 
+  let pdfBuffer: Buffer | null = null;
+  try {
+    pdfBuffer = generateBookingPdfBuffer(booking, property);
+  } catch (pdfErr) {
+    console.error("[Stayora Mailer] Failed to generate confirmation PDF:", pdfErr);
+  }
+
   if (!emailPass) {
     console.warn("[Stayora Mailer] WARNING: SMTP password EMAIL_PASS is not configured in .env. Skipping actual SMTP mail send.");
     console.log("[Stayora Mailer] GRACEFUL LOGGED CONFIRMATION EMAIL CONTENT:\n", emailHtml);
@@ -227,12 +329,21 @@ export async function sendBookingConfirmationEmail(
       },
     });
 
-    const mailOptions = {
+    const mailOptions: any = {
       from: `"Stayora Luxury Bookings" <${emailUser}>`,
       to: toEmail,
       subject: `Booking Confirmed: ${property.title} | Stayora`,
       html: emailHtml,
     };
+
+    if (pdfBuffer) {
+      mailOptions.attachments = [
+        {
+          filename: `Stayora_Confirmation_${booking._id.toString().substring(18)}.pdf`,
+          content: pdfBuffer,
+        }
+      ];
+    }
 
     const info = await transporter.sendMail(mailOptions);
     console.log(`[Stayora Mailer] Email sent successfully: ${info.messageId}`);

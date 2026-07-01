@@ -146,6 +146,22 @@ export const AdminClient: React.FC<AdminClientProps> = ({
   });
   const [isSavingPackage, setIsSavingPackage] = useState(false);
 
+  // Custom Booking Form
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [bookingForm, setBookingForm] = useState({
+    propertyId: "",
+    name: "",
+    email: "",
+    checkIn: "",
+    checkOut: "",
+    guests: "1",
+    totalPrice: "",
+    status: "pending",
+    paymentStatus: "unpaid",
+  });
+  const [bookingFormError, setBookingFormError] = useState("");
+  const [isSavingBooking, setIsSavingBooking] = useState(false);
+
   // Image zoom modal
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
@@ -376,6 +392,55 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       unavailableDates: ""
     });
     setIsPropertyModalOpen(true);
+  };
+
+  const openCreateBooking = () => {
+    setBookingForm({
+      propertyId: "",
+      name: "",
+      email: "",
+      checkIn: "",
+      checkOut: "",
+      guests: "1",
+      totalPrice: "",
+      status: "pending",
+      paymentStatus: "unpaid",
+    });
+    setBookingFormError("");
+    setIsBookingModalOpen(true);
+  };
+
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBookingFormError("");
+    setIsSavingBooking(true);
+
+    try {
+      const res = await fetch("/api/admin/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...bookingForm,
+          guests: Number(bookingForm.guests),
+          totalPrice: Number(bookingForm.totalPrice),
+        })
+      });
+      const body = await res.json();
+
+      if (body.success && body.data) {
+        setBookings((prev) => [body.data, ...prev]);
+        setIsBookingModalOpen(false);
+        fetchAnalytics();
+        alert("Custom booking created successfully.");
+      } else {
+        setBookingFormError(body.message || "Failed to create booking.");
+      }
+    } catch (err) {
+      console.error(err);
+      setBookingFormError("An unexpected error occurred saving the booking.");
+    } finally {
+      setIsSavingBooking(false);
+    }
   };
 
   // Destinations Management
@@ -1079,9 +1144,14 @@ export const AdminClient: React.FC<AdminClientProps> = ({
         {/* Tab 3: Booking Tracker */}
         {activeTab === "bookings" && (
           <div className="flex flex-col gap-6">
-            <h2 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold border-b border-gold/10 pb-4 uppercase tracking-wider">
-              Guest Bookings Ledger ({bookings.length})
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gold/10 pb-4">
+              <h2 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold uppercase tracking-wider">
+                Guest Bookings Ledger ({bookings.length})
+              </h2>
+              <Button variant="luxury" size="sm" className="flex items-center gap-2 h-9 text-xs" onClick={openCreateBooking}>
+                <Plus className="h-4 w-4" /> Create Custom Booking
+              </Button>
+            </div>
 
             <div className="overflow-x-auto w-full border border-gold/15 rounded-sm shadow-sm">
               <table className="w-full border-collapse text-left text-xs">
@@ -1099,8 +1169,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                 <tbody className="divide-y divide-gold/10 text-emerald-rich/90 dark:text-luxury-cream/90 font-medium">
                   {bookings.map((b) => (
                     <tr key={b._id} className="hover:bg-emerald-rich/[0.01]">
-                      {/* Property */}
-                      <td className="p-4 min-w-[14rem]">
+                      {/* Estate details */}
+                      <td className="p-4 min-w-[15rem]">
                         <span className="font-bold text-sm block">{b.property?.title || "Property Deleted"}</span>
                         <span className="text-[10px] text-muted-foreground block mt-0.5">
                           {b.property ? `${b.property.city}, ${b.property.country}` : ""}
@@ -1167,10 +1237,10 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                           {b.status === "pending" && (
                             <button
                               onClick={() => handleUpdateBooking(b._id, "confirmed", "paid")}
-                              className="px-2 py-1 rounded-sm bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors font-bold text-[9px] uppercase tracking-wider"
-                              title="Approve payments & confirm"
+                              className="px-2 py-1 rounded-sm bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 border border-emerald-600/20 hover:bg-emerald-600/20 transition-colors font-bold text-[9px] uppercase tracking-wider"
+                              title="Confirm booking & notify guest"
                             >
-                              Verify Pay
+                              Confirm Booking
                             </button>
                           )}
 
@@ -2087,6 +2157,134 @@ export const AdminClient: React.FC<AdminClientProps> = ({
             <img src={zoomedImage} alt="UTR Screenshot Receipt" className="max-w-full max-h-[70vh] object-contain rounded-sm border border-gold/20 shadow-lg" />
           )}
         </div>
+      </Modal>
+
+      {/* MODAL 6: CREATE CUSTOM BOOKING */}
+      <Modal
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        title="Create Custom Booking & Confirm Reservation"
+      >
+        <form onSubmit={handleBookingSubmit} className="flex flex-col gap-4 text-left">
+          {bookingFormError && <span className="text-xs text-red-500 font-bold">{bookingFormError}</span>}
+
+          <div className="flex flex-col gap-1.5 w-full">
+            <label htmlFor="booking-property" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Selected Luxury Estate
+            </label>
+            <select
+              id="booking-property"
+              className="w-full px-4 h-11 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream"
+              value={bookingForm.propertyId}
+              onChange={(e) => {
+                const propId = e.target.value;
+                const targetProp = properties.find((p: any) => p._id === propId);
+                setBookingForm((prev) => ({
+                  ...prev,
+                  propertyId: propId,
+                  totalPrice: targetProp ? targetProp.pricePerNight.toString() : "",
+                }));
+              }}
+              required
+            >
+              <option value="">Select luxury property...</option>
+              {properties.map((prop: any) => (
+                <option key={prop._id} value={prop._id}>
+                  {prop.title} (₹{prop.pricePerNight}/night)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              id="booking-name"
+              label="Guest Full Name"
+              type="text"
+              required
+              placeholder="e.g. John Doe"
+              value={bookingForm.name}
+              onChange={(e) => setBookingForm((prev) => ({ ...prev, name: e.target.value }))}
+            />
+            <Input
+              id="booking-email"
+              label="Guest Email Address"
+              type="email"
+              required
+              placeholder="e.g. john@example.com"
+              value={bookingForm.email}
+              onChange={(e) => setBookingForm((prev) => ({ ...prev, email: e.target.value }))}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="booking-checkin" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+                Check-In Date
+              </label>
+              <input
+                id="booking-checkin"
+                type="date"
+                required
+                className="w-full px-4 h-11 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream cursor-pointer"
+                value={bookingForm.checkIn}
+                onChange={(e) => setBookingForm((prev) => ({ ...prev, checkIn: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="booking-checkout" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+                Check-Out Date
+              </label>
+              <input
+                id="booking-checkout"
+                type="date"
+                required
+                className="w-full px-4 h-11 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream cursor-pointer"
+                value={bookingForm.checkOut}
+                onChange={(e) => setBookingForm((prev) => ({ ...prev, checkOut: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <Input
+              id="booking-guests"
+              label="Total Guests Count"
+              type="number"
+              required
+              min="1"
+              value={bookingForm.guests}
+              onChange={(e) => setBookingForm((prev) => ({ ...prev, guests: e.target.value }))}
+            />
+            <Input
+              id="booking-price"
+              label="Agreed Total Cost (₹ INR)"
+              type="number"
+              required
+              min="0"
+              value={bookingForm.totalPrice}
+              onChange={(e) => setBookingForm((prev) => ({ ...prev, totalPrice: e.target.value }))}
+            />
+            <div className="flex flex-col gap-1.5 w-full">
+              <label htmlFor="booking-status" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+                Booking Status
+              </label>
+              <select
+                id="booking-status"
+                className="w-full px-4 h-11 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream"
+                value={bookingForm.status}
+                onChange={(e) => setBookingForm((prev) => ({ ...prev, status: e.target.value }))}
+              >
+                <option value="pending">Pending Enquiry</option>
+                <option value="confirmed">Confirmed (Triggers Email & PDF)</option>
+              </select>
+            </div>
+          </div>
+
+          <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingBooking}>
+            Create & Save Booking
+          </Button>
+        </form>
       </Modal>
     </div>
   );
