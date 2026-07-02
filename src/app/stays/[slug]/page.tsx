@@ -194,7 +194,7 @@ export default async function PropertyDetailsPage({
           <div className="lg:col-span-2 flex flex-col gap-8 text-left">
             <div className="flex flex-col gap-4">
               <h3 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold">
-                The Estate Experience
+                The Stay Experience
               </h3>
               <p className="text-sm leading-relaxed text-emerald-rich/80 dark:text-luxury-cream/80 font-light whitespace-pre-line">
                 {property.description}

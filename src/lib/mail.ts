@@ -8,6 +8,8 @@ interface BookingDetails {
   totalPrice: number;
   name?: string;
   email?: string;
+  phoneNumber?: string;
+  city?: string;
 }
 
 interface PropertyDetails {
@@ -15,73 +17,238 @@ interface PropertyDetails {
   city: string;
   country: string;
   address: string;
+  amenities?: string[];
 }
 
 /**
- * Generates a valid PDF-1.4 file buffer containing the booking details.
+ * Generates a valid PDF-1.4 file buffer containing the booking details matching the voucher layout design.
  */
 function generateBookingPdfBuffer(booking: any, property: any): Buffer {
-  const checkInStr = new Date(booking.checkIn).toLocaleDateString("en-IN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const checkOutStr = new Date(booking.checkOut).toLocaleDateString("en-IN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const priceFormatted = booking.totalPrice.toLocaleString("en-IN");
+  const checkInDate = new Date(booking.checkIn);
+  const checkOutDate = new Date(booking.checkOut);
 
-  const streamContent = `BT
-/F1 20 Tf
-70 760 Td
-(STAYORA LUXURY RETREATS) Tj
-/F1 14 Tf
-0 -40 Td
-(Booking Confirmation Receipt) Tj
-/F1 10 Tf
-0 -40 Td
-(Booking Reference ID: ${booking._id}) Tj
-0 -25 Td
-(Guest Name: ${booking.name || "Guest"}) Tj
-0 -25 Td
-(Guest Email: ${booking.email || ""}) Tj
-0 -25 Td
-(Luxury Estate: ${property.title}) Tj
-0 -25 Td
-(Street Location: ${property.address}) Tj
-0 -25 Td
-(City & Country: ${property.city}, ${property.country}) Tj
-0 -25 Td
-(Check-in Date: ${checkInStr}) Tj
-0 -25 Td
-(Check-out Date: ${checkOutStr}) Tj
-0 -25 Td
-(Guests Permitted: ${booking.guests} Person\\(s\\)) Tj
-0 -25 Td
-(Total Billing Amount: Rs. ${priceFormatted} INR) Tj
-0 -40 Td
-(Thank you for booking with Stayora. Your bespoke sanctuary is confirmed.) Tj
-ET`;
+  const formatDateStr = (date: Date) => {
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear();
+    return `${d}-${m}-${y}`;
+  };
 
-  const streamLen = Buffer.byteLength(streamContent, "utf-8");
+  const pdf = {
+    rect: (x: number, y: number, w: number, h: number, fill = false, stroke = true) => {
+      const op = fill && stroke ? "B" : fill ? "f" : "S";
+      return `${x} ${y} ${w} ${h} re ${op}`;
+    },
+    line: (x1: number, y1: number, x2: number, y2: number) => {
+      return `${x1} ${y1} m ${x2} ${y2} l S`;
+    },
+    text: (str: string, x: number, y: number, fontSize: number, font = "F1", color = "0 0 0") => {
+      const escaped = str
+        .replace(/\\/g, "\\\\")
+        .replace(/\(/g, "\\(")
+        .replace(/\)/g, "\\)");
+      return `q ${color} rg BT /${font} ${fontSize} Tf ${x} ${y} Td (${escaped}) Tj ET Q`;
+    }
+  };
+
+  const drawCheckmark = (x: number, y: number) => {
+    return `q 0.2 0.7 0.3 rg 2 w ${x} ${y+3} m ${x+3} ${y} l ${x+9} ${y+7} l S Q`;
+  };
+
+  // Build stream 1 (Page 1)
+  let stream1 = "";
+  // Draw light gold background for check-in / check-out boxes
+  stream1 += `q 0.99 0.99 0.97 rg 0.87 0.73 0.45 RG 1 w ${pdf.rect(50, 630, 235, 70, true, true)} Q\n`;
+  stream1 += `q 0.99 0.99 0.97 rg 0.87 0.73 0.45 RG 1 w ${pdf.rect(310, 630, 235, 70, true, true)} Q\n`;
+
+  // Draw header divider
+  stream1 += `q 0.01 0.11 0.09 RG 1.5 w ${pdf.line(50, 715, 545, 715)} Q\n`;
+
+  // Draw vertical marker for STAY & GUEST DETAILS
+  stream1 += `q 0.72 0.56 0.28 rg ${pdf.rect(50, 580, 4, 16, true, false)} Q\n`;
+
+  // Draw Table border for guest details
+  stream1 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.rect(50, 340, 495, 228, false, true)} Q\n`;
+  // Horizontal lines inside table
+  for (let i = 1; i < 6; i++) {
+    stream1 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.line(50, 568 - i * 38, 545, 568 - i * 38)} Q\n`;
+  }
+  // Vertical line in table
+  stream1 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.line(180, 340, 180, 568)} Q\n`;
+
+  // Draw vertical marker for Amenities and Activities
+  stream1 += `q 0.72 0.56 0.28 rg ${pdf.rect(50, 295, 4, 16, true, false)} Q\n`;
+  stream1 += `q 0.72 0.56 0.28 rg ${pdf.rect(310, 295, 4, 16, true, false)} Q\n`;
+
+  // Draw outer boxes for Amenities and Activities
+  stream1 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.rect(50, 70, 235, 210, false, true)} Q\n`;
+  stream1 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.rect(310, 70, 235, 210, false, true)} Q\n`;
+
+  // Page 1 Text commands
+  stream1 += pdf.text("STAYORA", 50, 775, 26, "F2", "0.01 0.11 0.09") + "\n";
+  stream1 += pdf.text(`${property.title.toUpperCase()} BOOKING VOUCHER`, 50, 750, 12, "F2", "0.72 0.56 0.28") + "\n";
+  stream1 += pdf.text(`Property Location: ${property.address}, ${property.city} | Status: Confirmed`, 50, 735, 9, "F1", "0.4 0.4 0.4") + "\n";
+
+  // Check-in details
+  stream1 += pdf.text("CHECK-IN DATE", 65, 680, 8, "F1", "0.5 0.5 0.5") + "\n";
+  stream1 += pdf.text(formatDateStr(checkInDate), 65, 658, 15, "F2", "0.01 0.11 0.09") + "\n";
+  stream1 += pdf.text("Standard Check-In: 02:00 PM", 65, 642, 8, "F2", "0.72 0.56 0.28") + "\n";
+
+  // Check-out details
+  stream1 += pdf.text("CHECK-OUT DATE", 325, 680, 8, "F1", "0.5 0.5 0.5") + "\n";
+  stream1 += pdf.text(formatDateStr(checkOutDate), 325, 658, 15, "F2", "0.01 0.11 0.09") + "\n";
+  stream1 += pdf.text("Standard Check-Out: 11:00 AM", 325, 642, 8, "F2", "0.72 0.56 0.28") + "\n";
+
+  stream1 += pdf.text("STAY & GUEST DETAILS", 62, 583, 11, "F2", "0.01 0.11 0.09") + "\n";
+
+  // Table rows
+  const rowLabels = ["Primary Guest", "Contact Number", "Guest Location", "Total Occupancy", "Property Name", "Booking Scope"];
+  const rowValues = [
+    booking.name || "Guest",
+    booking.phoneNumber || "+91 9497618961",
+    booking.city || "Calicut",
+    `${booking.guests} Guest(s)`,
+    property.title,
+    "Full Property Booking"
+  ];
+  for (let i = 0; i < 6; i++) {
+    const yText = 568 - (i * 38) - 24;
+    stream1 += pdf.text(rowLabels[i], 65, yText, 9, "F1", "0.3 0.3 0.3") + "\n";
+    const isBold = i === 0 || i === 5;
+    stream1 += pdf.text(rowValues[i], 195, yText, 9, isBold ? "F2" : "F1", "0.01 0.11 0.09") + "\n";
+  }
+
+  stream1 += pdf.text("RESORT AMENITIES", 62, 298, 11, "F2", "0.01 0.11 0.09") + "\n";
+  stream1 += pdf.text("ACTIVITIES AVAILABLE", 322, 298, 11, "F2", "0.01 0.11 0.09") + "\n";
+
+  const amenitiesList = property.amenities && property.amenities.length > 0 ? property.amenities.slice(0, 6) : [
+    "Big Infinity Swimming Pool",
+    "Campfire Experience Area",
+    "Barbecue Facility Available",
+    "Music Speaker with Microphone",
+    "Indoor Games Area & Chess",
+    "Coffee Plantation Ambience"
+  ];
+  const activitiesList = [
+    "Kids Play Area",
+    "Carroms & Board Games",
+    "Shuttle & Badminton Court",
+    "Pool Activities & Fun Games",
+    "Coffee Plantation Walk",
+    "Sightseeing Tour"
+  ].slice(0, 6);
+
+  for (let i = 0; i < amenitiesList.length; i++) {
+    const yList = 250 - (i * 30);
+    stream1 += drawCheckmark(65, yList) + "\n";
+    stream1 += pdf.text(amenitiesList[i], 80, yList, 8.5, "F1", "0.2 0.2 0.2") + "\n";
+  }
+
+  for (let i = 0; i < activitiesList.length; i++) {
+    const yList = 250 - (i * 30);
+    stream1 += drawCheckmark(325, yList) + "\n";
+    stream1 += pdf.text(activitiesList[i], 340, yList, 8.5, "F1", "0.2 0.2 0.2") + "\n";
+  }
+
+  // Page 1 Footer
+  stream1 += pdf.text(`Stayora Stays • ${property.title} Voucher`, 50, 40, 8, "F1", "0.5 0.5 0.5") + "\n";
+  stream1 += pdf.text("Page 1", 520, 40, 8, "F1", "0.5 0.5 0.5") + "\n";
+
+  // Build stream 2 (Page 2)
+  let stream2 = "";
+  // Draw header divider
+  stream2 += `q 0.01 0.11 0.09 RG 1.5 w ${pdf.line(50, 760, 545, 760)} Q\n`;
+
+  // Draw vertical marker for PAYMENT SUMMARY
+  stream2 += `q 0.72 0.56 0.28 rg ${pdf.rect(50, 715, 4, 16, true, false)} Q\n`;
+
+  // Draw Payment table box
+  stream2 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.rect(50, 550, 495, 150, false, true)} Q\n`;
+  stream2 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.line(50, 650, 545, 650)} Q\n`;
+  stream2 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.line(50, 600, 545, 600)} Q\n`;
+
+  // Highlight Balance Due Row
+  stream2 += `q 0.99 0.99 0.97 rg ${pdf.rect(51, 551, 493, 48, true, false)} Q\n`;
+
+  // Draw vertical marker for RULES & REGULATIONS
+  stream2 += `q 0.72 0.56 0.28 rg ${pdf.rect(50, 505, 4, 16, true, false)} Q\n`;
+
+  // Rules outer box
+  stream2 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.rect(50, 200, 495, 290, false, true)} Q\n`;
+
+  // Content for page 2
+  stream2 += pdf.text("PAYMENT SUMMARY", 62, 718, 11, "F2", "0.01 0.11 0.09") + "\n";
+
+  const totalVal = booking.totalPrice;
+  const advanceVal = Math.round(totalVal * 0.2);
+  const balanceVal = totalVal - advanceVal;
+
+  stream2 += pdf.text("Total Tariff Amount", 65, 668, 9, "F1", "0.3 0.3 0.3") + "\n";
+  stream2 += pdf.text(`Rs. ${totalVal.toLocaleString("en-IN")}`, 440, 668, 10, "F2", "0.01 0.11 0.09") + "\n";
+
+  stream2 += pdf.text("Advance Paid (Non-Refundable)", 65, 618, 9, "F1", "0.3 0.3 0.3") + "\n";
+  stream2 += pdf.text(`Rs. ${advanceVal.toLocaleString("en-IN")}`, 440, 618, 10, "F2", "0.05 0.5 0.25") + "\n";
+
+  stream2 += pdf.text("Balance Due at Check-In Time", 65, 568, 9, "F2", "0.72 0.56 0.28") + "\n";
+  stream2 += pdf.text(`Rs. ${balanceVal.toLocaleString("en-IN")}`, 440, 568, 10, "F2", "0.72 0.56 0.28") + "\n";
+
+  stream2 += pdf.text("RESORT RULES & REGULATIONS", 62, 508, 11, "F2", "0.01 0.11 0.09") + "\n";
+
+  const rules = [
+    ["Cancellation Policy", `The advance booking amount of Rs. ${advanceVal.toLocaleString("en-IN")} is strictly non-refundable under any circumstances.`],
+    ["Arrival & Departure Timings", "Check-in time begins at 2:00 PM. Check-out must be strictly completed by 11:00 AM to facilitate turnaround."],
+    ["Balance Settlement", `The remaining outstanding balance of Rs. ${balanceVal.toLocaleString("en-IN")} must be cleared entirely at the time of check-in.`],
+    ["Swimming Pool Rules", "Proper nylon swimwear is mandatory. Pool access and associated pool activities close strictly by 10:00 PM."],
+    ["Sound & Quiet Hours", "Music speakers, microphone usage, and high-volume sound limits are strictly implemented after 10:00 PM."],
+    ["Property Rules & Verification", "All guests must provide valid government-issued photo ID cards upon check-in. Any damage will be billed."]
+  ];
+
+  for (let i = 0; i < rules.length; i++) {
+    const yRule = 465 - (i * 42);
+    stream2 += `q 0.8 0.2 0.2 rg ${pdf.rect(65, yRule + 3, 3, 3, true, false)} Q\n`;
+    stream2 += pdf.text(`${rules[i][0]}:`, 75, yRule, 8.5, "F2", "0.8 0.2 0.2") + "\n";
+    stream2 += pdf.text(rules[i][1], 205, yRule, 7.8, "F1", "0.2 0.2 0.2") + "\n";
+  }
+
+  stream2 += pdf.text(`Thank you for choosing Stayora. We look forward to hosting your group for an elite getaway at ${property.title}!`, 50, 155, 9, "F3", "0.3 0.3 0.3") + "\n";
+
+  // Page 2 Footer
+  stream2 += pdf.text(`Stayora Stays • ${property.title} Voucher`, 50, 40, 8, "F1", "0.5 0.5 0.5") + "\n";
+  stream2 += pdf.text("Page 2", 520, 40, 8, "F1", "0.5 0.5 0.5") + "\n";
+
+  // Wrap stream contents inside PDF Objects
+  const s1Content = `BT\nET\n${stream1}`;
+  const s2Content = `BT\nET\n${stream2}`;
+
+  const s1Len = Buffer.byteLength(s1Content, "utf-8");
+  const s2Len = Buffer.byteLength(s2Content, "utf-8");
 
   const pdfHeader = `%PDF-1.4
 1 0 obj
 << /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+<< /Type /Pages /Kids [3 0 R 6 0 R] /Count 2 >>
 endobj
 3 0 obj
 << /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 595 842] /Contents 5 0 R >>
 endobj
 4 0 obj
-<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>
+<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> /F3 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >> >> >>
 endobj
 5 0 obj
-<< /Length ${streamLen} >>
+<< /Length ${s1Len} >>
+stream
+`;
+
+  const pdfMiddle = `
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 595 842] /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length ${s2Len} >>
 stream
 `;
 
@@ -89,29 +256,33 @@ stream
 endstream
 endobj
 xref
-0 6
+0 8
 0000000000 65535 f 
 0000000009 00000 n 
 0000000058 00000 n 
 0000000115 00000 n 
 0000000212 00000 n 
-0000000293 00000 n 
+0000000343 00000 n 
+0000000450 00000 n 
+0000000557 00000 n 
 trailer
-<< /Size 6 /Root 1 0 R >>
+<< /Size 8 /Root 1 0 R >>
 startxref
-860
+900
 %%EOF
 `;
 
   return Buffer.concat([
     Buffer.from(pdfHeader, "utf-8"),
-    Buffer.from(streamContent, "utf-8"),
+    Buffer.from(s1Content, "utf-8"),
+    Buffer.from(pdfMiddle, "utf-8"),
+    Buffer.from(s2Content, "utf-8"),
     Buffer.from(pdfFooter, "utf-8"),
   ]);
 }
 
 /**
- * Sends a premium HTML confirmation email to the user upon admin booking approval.
+ * Sends an HTML confirmation email to the user upon admin booking approval.
  */
 export async function sendBookingConfirmationEmail(
   toEmail: string,
@@ -254,12 +425,12 @@ export async function sendBookingConfirmationEmail(
         <div class="container">
           <div class="header">
             <h1>STAYORA</h1>
-            <span>Luxury Travel & Premium Retreats</span>
+            <span>Luxury Travel & Boutique Retreats</span>
           </div>
           <div class="content">
             <p class="welcome">Dear Traveler,</p>
             <p class="welcome">
-              We are delighted to inform you that your premium stay reservation at <strong>${property.title}</strong> has been officially confirmed by our concierge team. We have attached a PDF copy of your confirmation receipt for your records.
+              We are delighted to inform you that your stay reservation at <strong>${property.title}</strong> has been officially confirmed by our concierge team. We have attached a PDF copy of your confirmation receipt for your records.
             </p>
             
             <div class="card">

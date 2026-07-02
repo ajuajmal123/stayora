@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 An Unexpected Exception Occurred
               </h1>
               <p className="text-xs text-muted-foreground leading-relaxed mt-1 font-light">
-                A rare disturbance has occurred in our premium booking flow. Our private concierge hosts have been logged.
+                A rare disturbance has occurred in our booking flow. Our private concierge hosts have been logged.
               </p>
             </div>
 
@@ -82,7 +82,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="w-full flex items-center justify-center gap-2 text-xs"
                 onClick={this.handleReset}
               >
-                <RefreshCw className="h-3.5 w-3.5" /> Reload Estate
+                <RefreshCw className="h-3.5 w-3.5" /> Reload Page
               </Button>
               <Link href="/" className="w-full">
                 <Button

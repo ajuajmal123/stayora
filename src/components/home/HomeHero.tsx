@@ -111,7 +111,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({ destinations }) => {
 
       {/* Centered Search Console */}
       <div className="relative z-10 w-full max-w-4xl mx-auto px-6 flex flex-col items-center gap-6">
-        {/* Constant Premium Tagline */}
+        {/* Constant Tagline */}
         <div className="flex items-center gap-2.5 text-gold uppercase tracking-[0.25em] text-xs font-bold animate-fade-in drop-shadow-md">
           <Sparkles className="h-4.5 w-4.5 animate-pulse text-gold" />
           Find your perfect stay

@@ -18,12 +18,12 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Stayora | Luxury Travel & Premium Boutique Booking",
+  title: "Stayora | Luxury Travel & Boutique Booking",
   description:
     "Experience world-class luxury stays, private villas, and curated boutique hotels around the globe. Stayora offers exclusive booking services for the discerning traveler.",
-  keywords: "luxury villa, hotel booking, premium stays, boutique travel, boutique resort, private jet, holiday booking",
+  keywords: "luxury villa, hotel booking, luxury stays, boutique travel, boutique resort, private jet, holiday booking",
   openGraph: {
-    title: "Stayora | Luxury Travel & Premium Boutique Booking",
+    title: "Stayora | Luxury Travel & Boutique Booking",
     description: "Experience world-class luxury stays and curated boutique hotels around the globe.",
     url: "https://stayora.com",
     siteName: "Stayora",

@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Formats a number to currency (INR by default for premium stays).
+ * Formats a number to currency (INR by default for luxury stays).
  */
 export function formatCurrency(amount: number, currency: string = "INR"): string {
   return new Intl.NumberFormat("en-IN", {

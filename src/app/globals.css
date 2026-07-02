@@ -65,7 +65,7 @@ body {
   animation: luxury-shimmer 2s infinite linear;
 }
 
-/* Premium Scrollbar */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }

@@ -740,10 +740,10 @@ export const AdminClient: React.FC<AdminClientProps> = ({
   return (
     <div className="w-full flex flex-col lg:flex-row gap-8 items-start text-left font-sans">
       {/* Sidebar navigation */}
-      <div className="w-full lg:w-64 bg-white dark:bg-emerald-deep border border-gold/15 rounded-sm p-4 flex flex-col gap-1 shrink-0">
-        <div className="px-4 py-3 border-b border-gold/10 mb-2 flex items-center gap-2">
+      <div className="w-full lg:w-64 bg-white dark:bg-emerald-deep border border-gold/15 rounded-sm p-3 lg:p-4 flex flex-row flex-wrap lg:flex-col gap-2 shrink-0">
+        <div className="w-full px-4 py-2 border-b border-gold/10 lg:mb-2 flex items-center gap-2 shrink-0">
           <Award className="h-5 w-5 text-gold" />
-          <span className="font-display font-bold text-lg text-emerald-rich dark:text-gold uppercase tracking-wide">
+          <span className="font-display font-bold text-base lg:text-lg text-emerald-rich dark:text-gold uppercase tracking-wide">
             Stayora Admin
           </span>
         </div>
@@ -751,66 +751,66 @@ export const AdminClient: React.FC<AdminClientProps> = ({
         <button
           onClick={() => setActiveTab("overview")}
           className={cn(
-            "flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left",
+            "flex items-center justify-center lg:justify-start gap-3 px-3 py-2 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors text-left flex-1 lg:flex-none min-w-[140px] lg:min-w-0",
             activeTab === "overview"
               ? "bg-gold/10 text-gold border border-gold/25"
               : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
           )}
         >
-          <LayoutDashboard className="h-4.5 w-4.5" /> Overview Panel
+          <LayoutDashboard className="h-4.5 w-4.5" /> Overview
         </button>
 
         <button
           onClick={() => setActiveTab("properties")}
           className={cn(
-            "flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left",
+            "flex items-center justify-center lg:justify-start gap-3 px-3 py-2 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors text-left flex-1 lg:flex-none min-w-[140px] lg:min-w-0",
             activeTab === "properties"
               ? "bg-gold/10 text-gold border border-gold/25"
               : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
           )}
         >
-          <Home className="h-4.5 w-4.5" /> Luxury Properties
+          <Home className="h-4.5 w-4.5" /> Properties
         </button>
 
         <button
           onClick={() => setActiveTab("bookings")}
           className={cn(
-            "flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left",
+            "flex items-center justify-center lg:justify-start gap-3 px-3 py-2 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors text-left flex-1 lg:flex-none min-w-[140px] lg:min-w-0",
             activeTab === "bookings"
               ? "bg-gold/10 text-gold border border-gold/25"
               : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
           )}
         >
-          <Calendar className="h-4.5 w-4.5" /> Guest Bookings
+          <Calendar className="h-4.5 w-4.5" /> Bookings
         </button>
 
         <button
           onClick={() => setActiveTab("users")}
           className={cn(
-            "flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left",
+            "flex items-center justify-center lg:justify-start gap-3 px-3 py-2 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors text-left flex-1 lg:flex-none min-w-[140px] lg:min-w-0",
             activeTab === "users"
               ? "bg-gold/10 text-gold border border-gold/25"
               : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
           )}
         >
-          <Users className="h-4.5 w-4.5" /> User Accounts
+          <Users className="h-4.5 w-4.5" /> Accounts
         </button>
 
         <button
           onClick={() => setActiveTab("content")}
           className={cn(
-            "flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left",
+            "flex items-center justify-center lg:justify-start gap-3 px-3 py-2 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors text-left flex-1 lg:flex-none min-w-[140px] lg:min-w-0",
             activeTab === "content"
               ? "bg-gold/10 text-gold border border-gold/25"
               : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
           )}
         >
-          <Compass className="h-4.5 w-4.5" /> Content Editor
+          <Compass className="h-4.5 w-4.5" /> Content
         </button>
 
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors text-left text-red-500 hover:bg-red-500/10 border border-transparent mt-4 border-t border-gold/10 pt-4"
+          className="flex items-center justify-center lg:justify-start gap-3 px-3 py-2 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors text-left text-red-500 hover:bg-red-500/10 border border-transparent lg:mt-4 lg:border-t lg:border-gold/10 lg:pt-4 flex-grow lg:flex-grow-0 min-w-[120px] lg:min-w-0"
         >
           <LogOut className="h-4.5 w-4.5" /> Log Out
         </button>
@@ -892,7 +892,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
-                    Total Estates
+                    Total Properties
                   </span>
                   <span className="text-xl font-bold text-emerald-rich dark:text-gold font-display mt-0.5 block">
                     {analytics?.summary?.totalProperties || 0} Active
@@ -1064,7 +1064,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           <div className="flex flex-col gap-6">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gold/10 pb-4">
               <h2 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold uppercase tracking-wider">
-                Estates Portfolio ({properties.length})
+                Properties Portfolio ({properties.length})
               </h2>
               <Button variant="luxury" size="sm" className="flex items-center gap-2 h-9 text-xs" onClick={openCreateProperty}>
                 <Plus className="h-4 w-4" /> Add Luxury Property
@@ -1076,7 +1076,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="bg-emerald-rich/5 dark:bg-emerald-deep/60 text-gold-dark font-bold border-b border-gold/15 uppercase tracking-wider">
-                    <th className="p-4">Estates</th>
+                    <th className="p-4">Properties</th>
                     <th className="p-4">Type</th>
                     <th className="p-4">Location</th>
                     <th className="p-4">Price Per Night</th>
@@ -1121,14 +1121,14 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                         <button
                           onClick={() => openEditProperty(prop)}
                           className="p-2 border border-gold/15 rounded-sm hover:bg-gold/10 text-gold transition-colors"
-                          title="Edit estate"
+                          title="Edit property"
                         >
                           <Edit className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteProperty(prop._id)}
                           className="p-2 border border-red-500/15 rounded-sm hover:bg-red-500/10 text-red-500 transition-colors"
-                          title="Delete estate"
+                          title="Delete property"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -1157,7 +1157,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="bg-emerald-rich/5 dark:bg-emerald-deep/60 text-gold-dark font-bold border-b border-gold/15 uppercase tracking-wider">
-                    <th className="p-4">Estates & Guests</th>
+                    <th className="p-4">Properties & Guests</th>
                     <th className="p-4">User Contact</th>
                     <th className="p-4">Period / Specs</th>
                     <th className="p-4">Bill Sum</th>
@@ -1606,14 +1606,14 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       <Modal
         isOpen={isPropertyModalOpen}
         onClose={() => setIsPropertyModalOpen(false)}
-        title={editingPropertyId ? "Edit Exclusive Estate Profile" : "Initiate Elite Retreat Listing"}
+        title={editingPropertyId ? "Edit Exclusive Property Profile" : "Initiate Elite Retreat Listing"}
       >
         <form onSubmit={handlePropertySubmit} className="flex flex-col gap-4 text-left">
           {propertyError && <span className="text-xs text-red-500 font-bold">{propertyError}</span>}
 
           <Input
-            id="estate-title"
-            label="Exclusive Estate Title"
+            id="property-title-input"
+            label="Exclusive Property Title"
             type="text"
             required
             placeholder="e.g. The Grand Horizon Sanctuary"
@@ -1623,16 +1623,16 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 w-full">
-              <label htmlFor="estate-type" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              <label htmlFor="property-type" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
                 Property Type & Classification
               </label>
               <select
-                id="estate-type"
+                id="property-type"
                 className="w-full px-4 h-11 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none"
                 value={propertyForm.type}
                 onChange={(e) => setPropertyForm((prev) => ({ ...prev, type: e.target.value }))}
               >
-                <option value="villa">Premium Villa</option>
+                <option value="villa">Luxury Villa</option>
                 <option value="hotel">Boutique Hotel</option>
                 <option value="resort">Luxury Resort</option>
                 <option value="apartment">Elite Apartment</option>
@@ -1640,17 +1640,17 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                 <option value="mansion">Luxury Mansion</option>
                 <option value="hostel">Boutique Hostel</option>
                 <option value="guesthouse">Heritage Guest House</option>
-                <option value="lodge">Premium Lodge</option>
+                <option value="lodge">Luxury Lodge</option>
                 <option value="spa">Wellness Spa & Health Center</option>
               </select>
             </div>
 
             <div className="flex flex-col gap-1.5 w-full">
-              <label htmlFor="estate-status" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              <label htmlFor="property-status" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
                 Inventory Publish Status
               </label>
               <select
-                id="estate-status"
+                id="property-status"
                 className="w-full px-4 h-11 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none"
                 value={propertyForm.status}
                 onChange={(e) => setPropertyForm((prev) => ({ ...prev, status: e.target.value }))}
@@ -1663,11 +1663,11 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           </div>
 
           <div className="flex flex-col gap-1.5 w-full">
-            <label htmlFor="estate-destination" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+            <label htmlFor="property-destination" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
               Connected Destination (Link to Location)
             </label>
             <select
-              id="estate-destination"
+              id="property-destination"
               className="w-full px-4 h-11 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream"
               value={propertyForm.destination}
               onChange={(e) => setPropertyForm((prev) => ({ ...prev, destination: e.target.value }))}
@@ -2170,7 +2170,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
           <div className="flex flex-col gap-1.5 w-full">
             <label htmlFor="booking-property" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-              Selected Luxury Estate
+              Selected Luxury Property
             </label>
             <select
               id="booking-property"

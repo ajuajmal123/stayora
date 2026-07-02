@@ -172,7 +172,7 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
           {/* Header count and active sorting details */}
           <div className="flex items-center justify-between pb-4 border-b border-emerald-rich/5">
             <span className="text-xs uppercase tracking-wider text-emerald-rich/70 dark:text-luxury-cream/70 font-semibold">
-              Showing {properties.length} of {totalProperties} Premium Listings
+              Showing {properties.length} of {totalProperties} Luxury Listings
             </span>
           </div>
 
@@ -262,7 +262,7 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
                       <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Luxury Standard</span>
                       <Link href={`/stays/${prop.slug}`}>
                         <Button variant="luxury" size="sm" className="h-8 text-[10px] py-0 tracking-wider font-bold uppercase px-4">
-                          Explore Estate
+                          Explore Stay
                         </Button>
                       </Link>
                     </CardFooter>

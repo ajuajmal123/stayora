@@ -242,7 +242,7 @@ export default async function HomePage() {
                     )}
                     <Link href={`/stays/${prop.slug}`}>
                       <Button variant="luxury" size="sm" className="h-8 text-[10px] py-0 tracking-wider font-bold uppercase px-4">
-                        Explore Estate
+                        Explore Stay
                       </Button>
                     </Link>
                   </CardFooter>

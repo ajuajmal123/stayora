@@ -38,7 +38,7 @@ export default function AboutPage() {
         {/* Redefining modern getaway */}
         <section className="flex flex-col gap-6">
           <p className="text-base leading-relaxed text-emerald-rich/80 dark:text-luxury-cream/85 font-light">
-            We are dedicated to redefining the modern getaway by offering curated, premium accommodations that seamlessly blend profound comfort with striking, sophisticated design.
+            We are dedicated to redefining the modern getaway by offering curated, luxury accommodations that seamlessly blend profound comfort with striking, sophisticated design.
           </p>
         </section>
 
@@ -107,7 +107,7 @@ export default function AboutPage() {
           <div className="flex flex-col gap-2">
             <h3 className="font-display text-2xl font-bold text-emerald-rich dark:text-gold">Our Promise</h3>
             <p className="text-xs text-muted-foreground max-w-lg leading-relaxed font-light">
-              Travel should inspire. At Stayora, we are passionate about hosting you in spaces that reflect the beauty of their surroundings and the elegance of premium design. We invite you to step out of the ordinary and experience a new standard of stay.
+              Travel should inspire. At Stayora, we are passionate about hosting you in spaces that reflect the beauty of their surroundings and the elegance of luxury design. We invite you to step out of the ordinary and experience a new standard of stay.
             </p>
           </div>
 

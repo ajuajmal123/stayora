@@ -130,7 +130,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={images[activeImageIndex] || "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80"}
-              alt="Luxury Estate Main"
+              alt="Luxury Property Main"
               className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.01]"
             />
           </div>
@@ -355,7 +355,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
                 <span>{formatCurrency(baseTotal)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Stayora Premium Service Fee</span>
+                <span>Stayora Service Fee</span>
                 <span>{formatCurrency(serviceFee)}</span>
               </div>
               <div className="flex items-center justify-between border-t border-emerald-rich/5 pt-3 font-bold text-sm text-emerald-rich dark:text-gold">
@@ -389,7 +389,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
             <Shield className="h-5 w-5 text-gold-dark" />
             <div className="text-left">
               <span className="text-[10px] uppercase font-bold text-gold-dark tracking-wider">Stayora Protection</span>
-              <p className="text-[10px] text-muted-foreground">Premium security guarantee & 24/7 client coordination.</p>
+              <p className="text-[10px] text-muted-foreground">Security guarantee & 24/7 client coordination.</p>
             </div>
           </div>
         </div>
