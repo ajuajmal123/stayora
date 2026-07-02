@@ -59,3 +59,63 @@ export function verifyCsrfHeaders(request: Request): boolean {
 
   return true;
 }
+
+export async function verifyAdmin() {
+  const { cookies } = await import("next/headers");
+  const { verifyAccessToken, verifyRefreshToken, setAuthCookies, clearAuthCookies } = await import("./jwt");
+  const { default: User } = await import("@/models/User");
+  const { UnauthorizedError } = await import("./errors");
+
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get("accessToken")?.value;
+  const refreshToken = cookieStore.get("refreshToken")?.value;
+
+  // 1. Validate Access Token
+  if (accessToken) {
+    const decoded = verifyAccessToken(accessToken);
+    if (decoded && decoded.role === "admin") {
+      const user = await User.findById(decoded.id);
+      if (user && !user.isBlocked) {
+        return user;
+      }
+    }
+  }
+
+  // 2. Access Token expired/missing. Check if Refresh Token is present for silent auto-refresh
+  if (refreshToken) {
+    const decoded = verifyRefreshToken(refreshToken);
+    if (decoded && decoded.role === "admin") {
+      const user = await User.findOne({ _id: decoded.id, refreshTokens: refreshToken });
+      if (user && !user.isBlocked) {
+        // Rotate tokens
+        const tokenPayload = {
+          id: user._id.toString(),
+          email: user.email,
+          role: user.role as "admin" | "agent" | "user",
+        };
+
+        const { refreshToken: newRefreshToken } = await setAuthCookies(tokenPayload);
+
+        // Update database tokens
+        await User.updateOne(
+          { _id: user._id },
+          {
+            $pull: { refreshTokens: refreshToken },
+          }
+        );
+        await User.updateOne(
+          { _id: user._id },
+          {
+            $push: { refreshTokens: newRefreshToken },
+          }
+        );
+
+        return user;
+      }
+    }
+  }
+
+  // If both tokens are invalid/missing, clear cookies and throw Unauthorized
+  await clearAuthCookies();
+  throw new UnauthorizedError("Session expired or user not logged in");
+}

@@ -4,35 +4,9 @@ import Destination from "@/models/Destination";
 import User from "@/models/User";
 import { ApiResponse } from "@/lib/api-response";
 import { UnauthorizedError, ForbiddenError, ValidationError, NotFoundError } from "@/lib/errors";
-import { verifyAccessToken } from "@/lib/jwt";
 import { uploadToCloudinary } from "@/lib/cloudinary";
-import { cookies } from "next/headers";
+import { verifyAdmin } from "@/lib/security";
 import mongoose from "mongoose";
-
-async function verifyAdmin() {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get("accessToken")?.value;
-
-  if (!accessToken) {
-    throw new UnauthorizedError("Please login to perform this action");
-  }
-
-  const decoded = verifyAccessToken(accessToken);
-  if (!decoded) {
-    throw new UnauthorizedError("Session expired. Please log in again");
-  }
-
-  if (decoded.role !== "admin") {
-    throw new ForbiddenError("Access restricted to administrators only");
-  }
-
-  const user = await User.findById(decoded.id);
-  if (!user || user.isBlocked) {
-    throw new ForbiddenError("Your account has been suspended or does not exist");
-  }
-
-  return user;
-}
 
 export async function GET(req: NextRequest) {
   try {
