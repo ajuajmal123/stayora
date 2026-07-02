@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, User as UserIcon, LogOut, Shield, MapPin, Building, Key, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,10 +12,21 @@ import Button from "../ui/Button";
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, isLoading, isInitialized, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const handleNavbarLogout = async () => {
+    const success = await logout();
+    if (success) {
+      setIsDropdownOpen(false);
+      setIsMobileMenuOpen(false);
+      router.push("/");
+      router.refresh();
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -87,7 +98,7 @@ export const Navbar: React.FC = () => {
 
         {/* Desktop Auth Controls */}
         <div className="hidden md:flex items-center gap-4 min-w-[80px] justify-end">
-          {isAuthenticated && user && user.role === "admin" ? (
+          {isAuthenticated && user ? (
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -110,7 +121,7 @@ export const Navbar: React.FC = () => {
                     {user.name}
                   </p>
                   <span className="text-[9px] uppercase tracking-widest text-gold font-medium">
-                    Admin
+                    {user.role === "admin" ? "Admin" : "Traveler"}
                   </span>
                 </div>
               </button>
@@ -130,19 +141,21 @@ export const Navbar: React.FC = () => {
                       className="absolute right-0 mt-3 w-56 rounded-sm bg-emerald-deep border border-gold/20 shadow-xl py-2 z-10 font-sans"
                     >
                       <div className="px-4 py-2 border-b border-gold/10">
-                        <p className="text-xs text-luxury-cream/60 font-medium">Signed in as Admin</p>
+                        <p className="text-xs text-luxury-cream/60 font-medium">Signed in as {user.role === "admin" ? "Admin" : "Traveler"}</p>
                         <p className="text-sm font-semibold text-luxury-cream truncate">{user.email}</p>
                       </div>
 
-                      <Link
-                        href="/admin"
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-luxury-cream/80 hover:bg-emerald-accent hover:text-gold transition-colors"
-                      >
-                        <Shield className="h-4 w-4 text-gold" /> Admin Console
-                      </Link>
+                      {user.role === "admin" && (
+                        <Link
+                          href="/admin"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-luxury-cream/80 hover:bg-emerald-accent hover:text-gold transition-colors"
+                        >
+                          <Shield className="h-4 w-4 text-gold" /> Admin Console
+                        </Link>
+                      )}
 
                       <button
-                        onClick={() => logout()}
+                        onClick={handleNavbarLogout}
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-emerald-accent hover:text-red-300 transition-colors border-t border-gold/10 mt-1"
                       >
                         <LogOut className="h-4 w-4" /> Logout
@@ -184,7 +197,7 @@ export const Navbar: React.FC = () => {
                 </Link>
               ))}
 
-              {isAuthenticated && user && user.role === "admin" && (
+              {isAuthenticated && user ? (
                 <>
                   <hr className="border-gold/10 my-1" />
                   <div className="flex flex-col gap-4">
@@ -203,25 +216,27 @@ export const Navbar: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-luxury-cream uppercase">{user.name}</p>
-                        <span className="text-[10px] text-gold uppercase tracking-wider">Admin</span>
+                        <span className="text-[10px] text-gold uppercase tracking-wider">{user.role === "admin" ? "Admin" : "Traveler"}</span>
                       </div>
                     </div>
 
-                    <Link href="/admin" className="text-xs uppercase tracking-wider font-semibold text-luxury-cream/80 hover:text-gold">
-                      Admin Console
-                    </Link>
+                    {user.role === "admin" && (
+                      <Link href="/admin" className="text-xs uppercase tracking-wider font-semibold text-luxury-cream/80 hover:text-gold">
+                        Admin Console
+                      </Link>
+                    )}
 
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => logout()}
+                      onClick={handleNavbarLogout}
                       className="w-full text-red-400 border-red-400 hover:bg-red-400/10 hover:text-red-300 mt-2"
                     >
                       Logout
                     </Button>
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
           </motion.div>
         )}

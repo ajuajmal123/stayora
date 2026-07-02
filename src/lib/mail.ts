@@ -105,8 +105,8 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
   const rowLabels = ["Primary Guest", "Contact Number", "Guest Location", "Total Occupancy", "Property Name", "Booking Scope"];
   const rowValues = [
     booking.name || "Guest",
-    booking.phoneNumber || "+91 9497618961",
-    booking.city || "Calicut",
+    booking.phoneNumber || "",
+    property.city || "",
     `${booking.guests} Guest(s)`,
     property.title,
     "Full Property Booking"
@@ -447,7 +447,7 @@ export async function sendBookingConfirmationEmail(
             <span>Boutique Retreats</span>
           </div>
           <div class="content">
-            <p class="welcome">Dear Traveler,</p>
+            <p class="welcome">Dear ${booking.name || "Traveler"},</p>
             <p class="welcome">
               We are delighted to inform you that your stay reservation at <strong>${property.title}</strong> has been officially confirmed by our concierge team. We have attached a PDF copy of your confirmation receipt for your records.
             </p>
@@ -485,7 +485,7 @@ export async function sendBookingConfirmationEmail(
             </div>
             
             <p class="welcome" style="margin-bottom: 0;">
-              Our verified local host Marcus coordinates chef bookings, excursions, and transport links. Should you have any special requirements, please feel free to reach out to us.
+              Our verified local host coordinates chef bookings, excursions, and transport links. Should you have any special requirements, please feel free to reach out to us.
             </p>
           </div>
           <div class="footer">

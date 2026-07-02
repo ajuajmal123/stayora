@@ -18,7 +18,7 @@ export function signAccessToken(payload: TokenPayload): string {
 }
 
 export function signRefreshToken(payload: TokenPayload): string {
-  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: "15d" });
+  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: "7d" });
 }
 
 export function verifyAccessToken(token: string): TokenPayload | null {
@@ -54,7 +54,7 @@ export async function setAuthCookies(payload: TokenPayload, customRefreshToken?:
     maxAge: 15 * 60, // 15 minutes
   });
 
-  // Set Refresh Token (15 days)
+  // Set Refresh Token (7 days)
   cookieStore.set({
     name: "refreshToken",
     value: refreshToken,
@@ -62,7 +62,7 @@ export async function setAuthCookies(payload: TokenPayload, customRefreshToken?:
     secure: env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
-    maxAge: 15 * 24 * 60 * 60, // 15 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   });
 
   return { accessToken, refreshToken };

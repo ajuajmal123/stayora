@@ -6,6 +6,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import Property from "@/models/Property";
 import User from "@/models/User";
 import Review from "@/models/Review";
+import Destination from "@/models/Destination";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import DetailInteractive from "@/components/stays/DetailInteractive";

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     const body = await req.json();
-    const { propertyId, checkIn, checkOut, guests, name, email } = body;
+    const { propertyId, checkIn, checkOut, guests, name, email, phoneNumber } = body;
 
     // Validate inputs
     if (!name || !email) {
@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
       property: propertyId,
       name: name,
       email: email,
+      phoneNumber: phoneNumber || "",
       checkIn: checkInDate,
       checkOut: checkOutDate,
       totalPrice: totalPrice,

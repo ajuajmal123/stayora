@@ -20,6 +20,10 @@ const bookingSchema = new Schema(
       type: String,
       required: [true, "Email address is required"],
     },
+    phoneNumber: {
+      type: String,
+      required: false,
+    },
     checkIn: {
       type: Date,
       required: [true, "Check-in date is required"],

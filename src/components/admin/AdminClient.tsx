@@ -183,7 +183,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     status: "pending",
     paymentStatus: "unpaid",
     customAmenities: "",
-    customRules: ""
+    customRules: "",
+    phoneNumber: ""
   });
   const [bookingFormError, setBookingFormError] = useState("");
   const [isSavingBooking, setIsSavingBooking] = useState(false);
@@ -566,7 +567,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       status: "pending",
       paymentStatus: "unpaid",
       customAmenities: "",
-      customRules: ""
+      customRules: "",
+      phoneNumber: ""
     });
     setBookingFormError("");
     setIsBookingModalOpen(true);
@@ -968,6 +970,18 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           )}
         >
           <Compass className="h-4.5 w-4.5" /> Content
+        </button>
+
+        <button
+          onClick={() => setActiveTab("blogs")}
+          className={cn(
+            "flex items-center justify-center lg:justify-start gap-3 px-3 py-2 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors text-left flex-1 lg:flex-none min-w-[140px] lg:min-w-0",
+            activeTab === "blogs"
+              ? "bg-gold/10 text-gold border border-gold/25"
+              : "text-emerald-rich/70 dark:text-luxury-cream/70 hover:bg-emerald-rich/5 border border-transparent"
+          )}
+        >
+          <BookOpen className="h-4.5 w-4.5" /> Blogs
         </button>
 
         <button
@@ -1769,6 +1783,53 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
           </div>
         )}
+
+        {/* Tab 6: Blogs Management */}
+        {activeTab === "blogs" && (
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between border-b border-gold/10 pb-4">
+              <div>
+                <h2 className="font-display text-2xl text-emerald-rich dark:text-luxury-cream">Blogs & Articles</h2>
+                <p className="text-xs text-muted-foreground mt-1">Manage and publish news, tour updates, or travel tips.</p>
+              </div>
+              <Button variant="luxury" size="sm" onClick={openCreateBlog}>
+                <Plus className="h-4 w-4 mr-2" /> Write Article
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {blogs.map((b) => (
+                <div key={b._id} className="border border-gold/15 rounded-sm p-4 bg-emerald-rich/[0.01] flex flex-col justify-between">
+                  <div className="flex gap-4">
+                    <div className="h-20 w-28 rounded-sm overflow-hidden shrink-0 bg-luxury-sand relative border border-gold/10">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={b.coverImage} alt={b.title} className="h-full w-full object-cover" />
+                    </div>
+                    <div className="flex flex-col gap-1 text-left min-w-0">
+                      <span className="font-display font-semibold text-emerald-rich dark:text-luxury-cream truncate block text-sm">{b.title}</span>
+                      <span className="text-[10px] text-muted-foreground font-medium">By {b.author || "Stayora"} | {(b.tags || []).join(", ")}</span>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{b.excerpt}</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gold/5">
+                    <button
+                      onClick={() => openEditBlog(b)}
+                      className="p-1.5 border border-gold/15 text-gold rounded-sm hover:bg-gold/10 text-xs flex items-center gap-1 font-semibold"
+                    >
+                      <Edit className="h-3.5 w-3.5" /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBlog(b._id)}
+                      className="p-1.5 border border-red-500/15 text-red-500 rounded-sm hover:bg-red-500/10 text-xs flex items-center gap-1 font-semibold"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* MODAL 1: CREATE / EDIT PROPERTY - Transformed with Concierge Professional Language */}
@@ -2386,6 +2447,16 @@ export const AdminClient: React.FC<AdminClientProps> = ({
             />
           </div>
 
+          <Input
+            id="booking-phone"
+            label="Guest Contact Number"
+            type="tel"
+            required
+            placeholder="e.g. +91 98765 43210"
+            value={bookingForm.phoneNumber}
+            onChange={(e) => setBookingForm((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+          />
+
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="booking-checkin" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
@@ -2471,6 +2542,83 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
           <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingBooking}>
             Create & Save Booking
+          </Button>
+        </form>
+      </Modal>
+
+      {/* MODAL 7: CREATE / EDIT BLOG POST */}
+      <Modal
+        isOpen={isBlogModalOpen}
+        onClose={() => setIsBlogModalOpen(false)}
+        title={editingBlogId ? "Edit Blog Article" : "Create New Blog Article"}
+      >
+        <form onSubmit={handleBlogSubmit} className="flex flex-col gap-4 text-left">
+          <Input
+            id="blog-title"
+            label="Article Title"
+            type="text"
+            required
+            placeholder="e.g. Secrets of the Western Ghats Trails"
+            value={blogForm.title}
+            onChange={(e) => setBlogForm((prev) => ({ ...prev, title: e.target.value }))}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              id="blog-author"
+              label="Author Name"
+              type="text"
+              placeholder="e.g. Stayora Explorer"
+              value={blogForm.author}
+              onChange={(e) => setBlogForm((prev) => ({ ...prev, author: e.target.value }))}
+            />
+            <Input
+              id="blog-tags"
+              label="Tags (comma separated)"
+              type="text"
+              placeholder="e.g. Western Ghats, Trekking, Tourism"
+              value={blogForm.tags}
+              onChange={(e) => setBlogForm((prev) => ({ ...prev, tags: e.target.value }))}
+            />
+          </div>
+
+          <Input
+            id="blog-cover"
+            label="Cover Image URL"
+            type="text"
+            required
+            placeholder="e.g. https://images.unsplash.com/..."
+            value={blogForm.coverImage}
+            onChange={(e) => setBlogForm((prev) => ({ ...prev, coverImage: e.target.value }))}
+          />
+
+          <Input
+            id="blog-excerpt"
+            label="Short Excerpt"
+            type="text"
+            required
+            placeholder="Brief summary of the article..."
+            value={blogForm.excerpt}
+            onChange={(e) => setBlogForm((prev) => ({ ...prev, excerpt: e.target.value }))}
+          />
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="blog-content" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
+              Article Content (Supports markdown style paragraphs)
+            </label>
+            <textarea
+              id="blog-content"
+              required
+              rows={8}
+              placeholder="Write the full body of the article here..."
+              className="w-full p-4 border border-gold/15 bg-white dark:bg-emerald-accent/20 rounded-sm text-sm focus:border-gold outline-none text-emerald-rich dark:text-luxury-cream"
+              value={blogForm.content}
+              onChange={(e) => setBlogForm((prev) => ({ ...prev, content: e.target.value }))}
+            />
+          </div>
+
+          <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingBlog}>
+            {editingBlogId ? "Save Article" : "Publish Article"}
           </Button>
         </form>
       </Modal>

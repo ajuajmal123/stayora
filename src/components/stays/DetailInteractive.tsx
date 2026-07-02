@@ -42,14 +42,15 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
   // Guest details for anonymous reservation enquiry
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
 
   // Booking Checkout states
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState("");
 
   const handleRequestReservation = async () => {
-    if (!guestName || !guestEmail) {
-      setBookingError("Name and email are required to request a reservation.");
+    if (!guestName || !guestEmail || !guestPhone) {
+      setBookingError("Name, email and phone number are required to request a reservation.");
       return;
     }
     if (!checkIn || !checkOut) {
@@ -71,6 +72,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
           guests: guestsCount,
           name: guestName,
           email: guestEmail,
+          phoneNumber: guestPhone,
         }),
       });
 
@@ -78,7 +80,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
 
       if (body.success && body.data) {
         try {
-          const message = `Hello Stayora, I would like to book a stay.\n\nHere are my booking details:\n- Guest Name: ${guestName}\n- Guest Email: ${guestEmail}\n- Resort: ${body.data.propertyTitle}\n- Check-in: ${new Date(body.data.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(body.data.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${body.data.guests}`;
+          const message = `Hello Stayora, I would like to book a stay.\n\nHere are my details:\n- Name: ${guestName}\n- Email: ${guestEmail}\n- Phone: ${guestPhone}\n- Stay: ${body.data.propertyTitle}\n- Check-in: ${new Date(body.data.checkIn).toLocaleDateString("en-IN")}\n- Check-out: ${new Date(body.data.checkOut).toLocaleDateString("en-IN")}\n- Guests: ${body.data.guests}`;
           const whatsappUrl = `https://wa.me/918590120810?text=${encodeURIComponent(message)}`;
           window.open(whatsappUrl, "_blank");
         } catch (e) {
@@ -253,6 +255,18 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
                 placeholder="e.g. alexander@example.com"
                 value={guestEmail}
                 onChange={(e) => setGuestEmail(e.target.value)}
+                required
+                className="h-10 text-xs"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5 text-left">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-gold-dark">Contact Number</label>
+              <Input
+                type="tel"
+                placeholder="e.g. +91 98765 43210"
+                value={guestPhone}
+                onChange={(e) => setGuestPhone(e.target.value)}
                 required
                 className="h-10 text-xs"
               />
