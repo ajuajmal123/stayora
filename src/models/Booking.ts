@@ -60,6 +60,14 @@ const bookingSchema = new Schema(
       type: String,
       default: "",
     },
+    customAmenities: {
+      type: [String],
+      default: [],
+    },
+    customRules: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,

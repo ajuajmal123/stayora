@@ -147,7 +147,7 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
         <div className="relative z-10 max-w-7xl mx-auto px-6 flex flex-col gap-3 items-center text-center justify-center">
           <span className="text-xs uppercase tracking-[0.25em] text-gold font-bold">Stayora Portfolio</span>
           <h1 className="font-display text-4xl sm:text-5xl font-light tracking-wide">
-            Luxury <span className="font-semibold text-gold">Stays & Villas</span>
+            <span className="font-semibold text-gold">Stays & Villas</span>
           </h1>
           <p className="text-xs sm:text-sm text-luxury-cream/70 max-w-xl mx-auto">
             Explore curated boutique listings spanning sun-drenched coastlines, historic sanctuaries, and high-alpine ski chalets.
@@ -172,7 +172,7 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
           {/* Header count and active sorting details */}
           <div className="flex items-center justify-between pb-4 border-b border-emerald-rich/5">
             <span className="text-xs uppercase tracking-wider text-emerald-rich/70 dark:text-luxury-cream/70 font-semibold">
-              Showing {properties.length} of {totalProperties} Luxury Listings
+              Showing {properties.length} of {totalProperties} Listings
             </span>
           </div>
 
@@ -259,7 +259,7 @@ export default async function StaysPage({ searchParams }: StaysPageProps) {
                     </CardContent>
 
                     <CardFooter className="justify-between items-center bg-emerald-rich/[0.01] dark:bg-emerald-light/[0.005] border-t border-emerald-rich/5 px-4 py-3 mt-0 shrink-0">
-                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Luxury Standard</span>
+                      <span />
                       <Link href={`/stays/${prop.slug}`}>
                         <Button variant="luxury" size="sm" className="h-8 text-[10px] py-0 tracking-wider font-bold uppercase px-4">
                           Explore Stay

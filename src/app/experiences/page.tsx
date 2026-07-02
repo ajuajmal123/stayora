@@ -10,7 +10,7 @@ import TourPackage from "@/models/TourPackage";
 
 export const metadata = {
   title: "Bespoke Experiences | Stayora Curated Travel",
-  description: "Enhance your stay with Stayora's exclusive luxury experiences, including private yacht charters, helicopter transfers, and Michelin-starred dining.",
+  description: "Enhance your stay with Stayora's exclusive experiences, including private yacht charters, helicopter transfers, and Michelin-starred dining.",
 };
 
 export default async function ExperiencesPage() {
@@ -42,7 +42,7 @@ export default async function ExperiencesPage() {
           </h1>
           <hr className="w-12 border-gold" />
           <p className="text-xs sm:text-sm text-luxury-cream/70 max-w-xl leading-relaxed">
-            Enhance your luxury stay with our tailored add-ons. From high-alpine transfers to personal chefs and private cruises, our concierge handles every detail.
+            Enhance your stay with our tailored add-ons. From high-alpine transfers to personal chefs and private cruises, our concierge handles every detail.
           </p>
         </div>
       </section>
@@ -109,14 +109,14 @@ export default async function ExperiencesPage() {
           <div className="flex items-start gap-4">
             <ShieldCheck className="h-8 w-8 text-gold mt-1 shrink-0" />
             <div className="text-left">
-              <h3 className="font-display text-xl font-bold text-emerald-rich dark:text-gold">Custom Luxury Itinerary</h3>
+              <h3 className="font-display text-xl font-bold text-emerald-rich dark:text-gold">Custom Itinerary</h3>
               <p className="text-xs text-muted-foreground leading-relaxed mt-1">
                 Have a specific request? Our concierge hosts specialize in organizing customized private jet flights, chef service hires, event planning, and secure security escorts anywhere in the world.
               </p>
             </div>
           </div>
           <a
-            href="https://wa.me/919876543210?text=Hi%20Stayora%2C%20I%20would%20like%20to%20request%20a%20Custom%20Luxury%20Itinerary%20for%20my%20upcoming%20travels."
+            href="https://wa.me/919876543210?text=Hi%20Stayora%2C%20I%20would%20like%20to%20request%20a%20Custom%20Itinerary%20for%20my%20upcoming%20travels."
             target="_blank"
             rel="noopener noreferrer"
             className="shrink-0"

@@ -31,7 +31,8 @@ import {
   RefreshCw,
   Gift,
   Compass as CompassIcon,
-  LogOut
+  LogOut,
+  BookOpen
 } from "lucide-react";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import Button from "../ui/Button";
@@ -69,7 +70,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     }
   };
 
-  const [activeTab, setActiveTab] = useState<"overview" | "properties" | "bookings" | "users" | "content">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "properties" | "bookings" | "users" | "content" | "blogs">("overview");
   const [contentSubTab, setContentSubTab] = useState<"destinations" | "banners" | "packages">("destinations");
 
   // State arrays
@@ -79,6 +80,28 @@ export const AdminClient: React.FC<AdminClientProps> = ({
   const [destinations, setDestinations] = useState(initialDestinations);
   const [banners, setBanners] = useState(initialBanners);
   const [packages, setPackages] = useState(initialPackages || []);
+  const [blogs, setBlogs] = useState<any[]>([]);
+
+  // Blogs Form States
+  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
+  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
+  const [blogForm, setBlogForm] = useState({
+    title: "",
+    content: "",
+    excerpt: "",
+    coverImage: "",
+    author: "Stayora Host",
+    tags: ""
+  });
+  const [isSavingBlog, setIsSavingBlog] = useState(false);
+
+  // Availability Calendar states
+  const [isCalModalOpen, setIsCalModalOpen] = useState(false);
+  const [calProperty, setCalProperty] = useState<any>(null);
+  const [calBlockedDates, setCalBlockedDates] = useState<string[]>([]);
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [isSavingCal, setIsSavingCal] = useState(false);
 
   // Analytics states
   const [analytics, setAnalytics] = useState<any>(null);
@@ -102,7 +125,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     maxGuests: "2",
     images: [] as string[],
     destination: "",
-    unavailableDates: ""
+    unavailableDates: "",
+    rules: ""
   });
   const [propertyError, setPropertyError] = useState("");
   const [isSavingProperty, setIsSavingProperty] = useState(false);
@@ -158,6 +182,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     totalPrice: "",
     status: "pending",
     paymentStatus: "unpaid",
+    customAmenities: "",
+    customRules: ""
   });
   const [bookingFormError, setBookingFormError] = useState("");
   const [isSavingBooking, setIsSavingBooking] = useState(false);
@@ -181,9 +207,98 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     }
   };
 
+  const fetchBlogs = async () => {
+    try {
+      const res = await fetch("/api/blogs");
+      const body = await res.json();
+      if (body.success && body.data) {
+        setBlogs(body.data);
+      }
+    } catch (err) {
+      console.error("Failed to load blogs:", err);
+    }
+  };
+
   useEffect(() => {
     fetchAnalytics();
+    fetchBlogs();
   }, []);
+
+  const handleBlogSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingBlog(true);
+    try {
+      const url = "/api/admin/blogs";
+      const method = editingBlogId ? "PUT" : "POST";
+      const payload = editingBlogId ? { ...blogForm, id: editingBlogId } : blogForm;
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const body = await res.json();
+      if (body.success && body.data) {
+        if (editingBlogId) {
+          setBlogs((prev) => prev.map((b) => (b._id === editingBlogId ? body.data : b)));
+        } else {
+          setBlogs((prev) => [body.data, ...prev]);
+        }
+        setIsBlogModalOpen(false);
+        alert("Blog post saved successfully.");
+      } else {
+        alert(body.message || "Failed to save blog post");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error saving blog post");
+    } finally {
+      setIsSavingBlog(false);
+    }
+  };
+
+  const handleDeleteBlog = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this blog post?")) return;
+    try {
+      const res = await fetch(`/api/admin/blogs?id=${id}`, { method: "DELETE" });
+      const body = await res.json();
+      if (body.success) {
+        setBlogs((prev) => prev.filter((b) => b._id !== id));
+        alert("Blog post deleted successfully.");
+      } else {
+        alert(body.message || "Failed to delete blog post");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting blog post");
+    }
+  };
+
+  const openCreateBlog = () => {
+    setEditingBlogId(null);
+    setBlogForm({
+      title: "",
+      content: "",
+      excerpt: "",
+      coverImage: "",
+      author: "Stayora Host",
+      tags: ""
+    });
+    setIsBlogModalOpen(true);
+  };
+
+  const openEditBlog = (blog: any) => {
+    setEditingBlogId(blog._id);
+    setBlogForm({
+      title: blog.title,
+      content: blog.content,
+      excerpt: blog.excerpt,
+      coverImage: blog.coverImage,
+      author: blog.author || "Stayora Host",
+      tags: (blog.tags || []).join(", ")
+    });
+    setIsBlogModalOpen(true);
+  };
 
   // Update booking status helper
   const handleUpdateBooking = async (bookingId: string, status?: string, paymentStatus?: string) => {
@@ -318,7 +433,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
         bathrooms: Number(propertyForm.bathrooms),
         maxGuests: Number(propertyForm.maxGuests),
         amenities: propertyForm.amenities.split(",").map((s) => s.trim()).filter(Boolean),
-        unavailableDates: propertyForm.unavailableDates.split(",").map((s) => s.trim()).filter(Boolean)
+        unavailableDates: propertyForm.unavailableDates.split(",").map((s) => s.trim()).filter(Boolean),
+        rules: propertyForm.rules ? propertyForm.rules.split(",").map((s) => s.trim()).filter(Boolean) : []
       };
 
       const res = await fetch(url, {
@@ -367,7 +483,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       maxGuests: property.maxGuests.toString(),
       images: property.images || [],
       destination: property.destination?._id || property.destination || "",
-      unavailableDates: (property.unavailableDates || []).join(", ")
+      unavailableDates: (property.unavailableDates || []).join(", "),
+      rules: (property.rules || []).join(", ")
     });
     setIsPropertyModalOpen(true);
   };
@@ -389,9 +506,52 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       maxGuests: "4",
       images: [],
       destination: "",
-      unavailableDates: ""
+      unavailableDates: "",
+      rules: "CHECK-IN TIME: 02:00 PM, CHECK-OUT TIME: 11:00 AM, CANCELLATION POLICY: Non-refundable, NO SMOKING: Inside bedrooms"
     });
     setIsPropertyModalOpen(true);
+  };
+
+  const openCalendarController = (property: any) => {
+    setCalProperty(property);
+    setCalBlockedDates(property.unavailableDates || []);
+    setCalYear(new Date().getFullYear());
+    setCalMonth(new Date().getMonth());
+    setIsCalModalOpen(true);
+  };
+
+  const handleToggleCalDate = (dateStr: string) => {
+    setCalBlockedDates((prev) =>
+      prev.includes(dateStr) ? prev.filter((d) => d !== dateStr) : [...prev, dateStr]
+    );
+  };
+
+  const handleSaveCalendar = async () => {
+    if (!calProperty) return;
+    setIsSavingCal(true);
+    try {
+      const res = await fetch(`/api/admin/properties/${calProperty._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...calProperty,
+          unavailableDates: calBlockedDates
+        })
+      });
+      const body = await res.json();
+      if (body.success && body.data) {
+        setProperties((prev) => prev.map((p) => (p._id === calProperty._id ? body.data : p)));
+        setIsCalModalOpen(false);
+        alert("Availability calendar updated successfully.");
+      } else {
+        alert(body.message || "Failed to update calendar.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error saving availability calendar.");
+    } finally {
+      setIsSavingCal(false);
+    }
   };
 
   const openCreateBooking = () => {
@@ -405,6 +565,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       totalPrice: "",
       status: "pending",
       paymentStatus: "unpaid",
+      customAmenities: "",
+      customRules: ""
     });
     setBookingFormError("");
     setIsBookingModalOpen(true);
@@ -1067,7 +1229,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                 Properties Portfolio ({properties.length})
               </h2>
               <Button variant="luxury" size="sm" className="flex items-center gap-2 h-9 text-xs" onClick={openCreateProperty}>
-                <Plus className="h-4 w-4" /> Add Luxury Property
+                <Plus className="h-4 w-4" /> Add Property
               </Button>
             </div>
 
@@ -1118,6 +1280,13 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                       </td>
 
                       <td className="p-4 text-right flex items-center justify-end gap-2 h-18">
+                        <button
+                          onClick={() => openCalendarController(prop)}
+                          className="p-2 border border-emerald-500/15 rounded-sm hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-colors"
+                          title="Manage Availability Calendar"
+                        >
+                          <Calendar className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           onClick={() => openEditProperty(prop)}
                           className="p-2 border border-gold/15 rounded-sm hover:bg-gold/10 text-gold transition-colors"
@@ -1632,15 +1801,15 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                 value={propertyForm.type}
                 onChange={(e) => setPropertyForm((prev) => ({ ...prev, type: e.target.value }))}
               >
-                <option value="villa">Luxury Villa</option>
+                <option value="villa">Villa</option>
                 <option value="hotel">Boutique Hotel</option>
-                <option value="resort">Luxury Resort</option>
+                <option value="resort">Resort</option>
                 <option value="apartment">Elite Apartment</option>
                 <option value="cabin">Rustic Cabin</option>
-                <option value="mansion">Luxury Mansion</option>
+                <option value="mansion">Mansion</option>
                 <option value="hostel">Boutique Hostel</option>
                 <option value="guesthouse">Heritage Guest House</option>
-                <option value="lodge">Luxury Lodge</option>
+                <option value="lodge">Lodge</option>
                 <option value="spa">Wellness Spa & Health Center</option>
               </select>
             </div>
@@ -1779,12 +1948,12 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           </div>
 
           <Input
-            id="estate-unavailable-dates"
-            label="Blocked Availability Dates (comma-separated YYYY-MM-DD)"
+            id="estate-rules"
+            label="House Rules & Guidelines (comma separated key:value or sentences)"
             type="text"
-            placeholder="e.g. 2026-07-04, 2026-07-05, 2026-07-12"
-            value={propertyForm.unavailableDates}
-            onChange={(e) => setPropertyForm((prev) => ({ ...prev, unavailableDates: e.target.value }))}
+            placeholder="e.g. CHECK-IN TIME: 02:00 PM, NO PETS: Allowed on the property"
+            value={propertyForm.rules}
+            onChange={(e) => setPropertyForm((prev) => ({ ...prev, rules: e.target.value }))}
           />
 
           {/* Image Upload Gallery */}
@@ -2170,7 +2339,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
           <div className="flex flex-col gap-1.5 w-full">
             <label htmlFor="booking-property" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-              Selected Luxury Property
+              Selected Property
             </label>
             <select
               id="booking-property"
@@ -2187,7 +2356,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
               }}
               required
             >
-              <option value="">Select luxury property...</option>
+              <option value="">Select property...</option>
               {properties.map((prop: any) => (
                 <option key={prop._id} value={prop._id}>
                   {prop.title} (₹{prop.pricePerNight}/night)
@@ -2281,10 +2450,147 @@ export const AdminClient: React.FC<AdminClientProps> = ({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4 border-t border-gold/10 pt-4 mt-2">
+            <Input
+              id="booking-custom-amenities"
+              label="Custom Amenities for this booking (comma separated)"
+              type="text"
+              placeholder="e.g. Private Pool Access, Bonfire Kit, Guided Trek"
+              value={bookingForm.customAmenities}
+              onChange={(e) => setBookingForm((prev) => ({ ...prev, customAmenities: e.target.value }))}
+            />
+            <Input
+              id="booking-custom-rules"
+              label="Custom Rules for this booking (comma separated)"
+              type="text"
+              placeholder="e.g. Check-in: 1:00 PM, No smoking inside rooms"
+              value={bookingForm.customRules}
+              onChange={(e) => setBookingForm((prev) => ({ ...prev, customRules: e.target.value }))}
+            />
+          </div>
+
           <Button type="submit" variant="luxury" size="md" className="mt-4 self-end" isLoading={isSavingBooking}>
             Create & Save Booking
           </Button>
         </form>
+      </Modal>
+
+      {/* MODAL 8: AVAILABILITY CALENDAR MODAL */}
+      <Modal
+        isOpen={isCalModalOpen}
+        onClose={() => setIsCalModalOpen(false)}
+        title={`Calendar - ${calProperty?.title || "Manage Availability"}`}
+      >
+        <div className="flex flex-col gap-4 text-left font-sans">
+          <p className="text-xs text-muted-foreground font-light leading-relaxed">
+            Click on any day grid cell to toggle its blocked availability status. Dark red indicates a date is blocked (unavailable for guest bookings). Save changes when done.
+          </p>
+
+          {/* Month Navigator */}
+          <div className="flex items-center justify-between border-b border-gold/15 pb-3">
+            <button
+              onClick={() => {
+                if (calMonth === 0) {
+                  setCalMonth(11);
+                  setCalYear((y) => y - 1);
+                } else {
+                  setCalMonth((m) => m - 1);
+                }
+              }}
+              className="px-3 py-1.5 border border-gold/20 text-gold rounded-sm hover:bg-gold/10 text-xs font-bold transition-colors"
+            >
+              &larr; Prev
+            </button>
+            <span className="font-display font-bold text-emerald-rich dark:text-gold text-sm uppercase tracking-wider">
+              {calProperty ? [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+              ][calMonth] : ""} {calYear}
+            </span>
+            <button
+              onClick={() => {
+                if (calMonth === 11) {
+                  setCalMonth(0);
+                  setCalYear((y) => y + 1);
+                } else {
+                  setCalMonth((m) => m + 1);
+                }
+              }}
+              className="px-3 py-1.5 border border-gold/20 text-gold rounded-sm hover:bg-gold/10 text-xs font-bold transition-colors"
+            >
+              Next &rarr;
+            </button>
+          </div>
+
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-gold/10 pb-1">
+            <span>Sun</span>
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+          </div>
+
+          {/* Calendar Grid cells */}
+          <div className="grid grid-cols-7 gap-2">
+            {calProperty && (() => {
+              const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+              const firstDay = new Date(calYear, calMonth, 1).getDay();
+              
+              const gridCells = [];
+              for (let i = 0; i < firstDay; i++) {
+                gridCells.push(<div key={`empty-${i}`} className="h-10 bg-transparent" />);
+              }
+
+              for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                const isBlocked = calBlockedDates.includes(dateStr);
+
+                gridCells.push(
+                  <button
+                    key={`day-${day}`}
+                    onClick={() => handleToggleCalDate(dateStr)}
+                    className={cn(
+                      "h-10 text-xs font-bold rounded-sm border flex flex-col items-center justify-center transition-colors cursor-pointer",
+                      isBlocked
+                        ? "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20"
+                        : "bg-emerald-500/5 text-emerald-rich dark:text-luxury-cream border-emerald-500/20 hover:bg-emerald-500/15"
+                    )}
+                  >
+                    <span>{day}</span>
+                    <span className="text-[7px] font-semibold uppercase tracking-wider scale-90">
+                      {isBlocked ? "Blocked" : "Avail"}
+                    </span>
+                  </button>
+                );
+              }
+              return gridCells;
+            })()}
+          </div>
+
+          {/* Legend and Save actions */}
+          <div className="flex items-center justify-between border-t border-gold/15 pt-4 mt-2">
+            <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-wider">
+              <span className="flex items-center gap-1.5 text-emerald-600">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Available
+              </span>
+              <span className="flex items-center gap-1.5 text-red-500">
+                <span className="h-2 w-2 rounded-full bg-red-500" /> Blocked Date
+              </span>
+            </div>
+            <Button
+              onClick={handleSaveCalendar}
+              variant="luxury"
+              size="sm"
+              isLoading={isSavingCal}
+              className="h-9 px-6 text-xs"
+            >
+              Save Calendar Changes
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

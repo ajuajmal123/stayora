@@ -379,7 +379,7 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
           </Button>
 
           <p className="text-[10px] text-center text-muted-foreground">
-            You won&apos;t be charged yet. Final confirmation is checked by your luxury concierge.
+            You won&apos;t be charged yet. Final confirmation is checked by your concierge.
           </p>
 
           <hr className="border-emerald-rich/5" />

@@ -121,14 +121,17 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
   stream1 += pdf.text("RESORT AMENITIES", 62, 298, 11, "F2", "0.01 0.11 0.09") + "\n";
   stream1 += pdf.text("ACTIVITIES AVAILABLE", 322, 298, 11, "F2", "0.01 0.11 0.09") + "\n";
 
-  const amenitiesList = property.amenities && property.amenities.length > 0 ? property.amenities.slice(0, 6) : [
-    "Big Infinity Swimming Pool",
-    "Campfire Experience Area",
-    "Barbecue Facility Available",
-    "Music Speaker with Microphone",
-    "Indoor Games Area & Chess",
-    "Coffee Plantation Ambience"
-  ];
+  let amenitiesList = booking.customAmenities && booking.customAmenities.length > 0
+    ? booking.customAmenities
+    : (property.amenities && property.amenities.length > 0 ? property.amenities : [
+        "Big Infinity Swimming Pool",
+        "Campfire Experience Area",
+        "Barbecue Facility Available",
+        "Music Speaker with Microphone",
+        "Indoor Games Area & Chess",
+        "Coffee Plantation Ambience"
+      ]);
+  amenitiesList = amenitiesList.slice(0, 6);
   const activitiesList = [
     "Kids Play Area",
     "Carroms & Board Games",
@@ -194,20 +197,36 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
 
   stream2 += pdf.text("RESORT RULES & REGULATIONS", 62, 508, 11, "F2", "0.01 0.11 0.09") + "\n";
 
-  const rules = [
-    ["Cancellation Policy", `The advance booking amount of Rs. ${advanceVal.toLocaleString("en-IN")} is strictly non-refundable under any circumstances.`],
-    ["Arrival & Departure Timings", "Check-in time begins at 2:00 PM. Check-out must be strictly completed by 11:00 AM to facilitate turnaround."],
-    ["Balance Settlement", `The remaining outstanding balance of Rs. ${balanceVal.toLocaleString("en-IN")} must be cleared entirely at the time of check-in.`],
-    ["Swimming Pool Rules", "Proper nylon swimwear is mandatory. Pool access and associated pool activities close strictly by 10:00 PM."],
-    ["Sound & Quiet Hours", "Music speakers, microphone usage, and high-volume sound limits are strictly implemented after 10:00 PM."],
-    ["Property Rules & Verification", "All guests must provide valid government-issued photo ID cards upon check-in. Any damage will be billed."]
-  ];
+  let rawRules = booking.customRules && booking.customRules.length > 0
+    ? booking.customRules
+    : (property.rules && property.rules.length > 0 ? property.rules : []);
 
-  for (let i = 0; i < rules.length; i++) {
+  let rulesList = [];
+  if (rawRules && rawRules.length > 0) {
+    rulesList = rawRules.map((ruleStr: string) => {
+      const colonIdx = ruleStr.indexOf(":");
+      if (colonIdx !== -1) {
+        return [ruleStr.substring(0, colonIdx).trim(), ruleStr.substring(colonIdx + 1).trim()];
+      }
+      return ["House Guideline", ruleStr];
+    });
+  } else {
+    rulesList = [
+      ["Cancellation Policy", `The advance booking amount of Rs. ${advanceVal.toLocaleString("en-IN")} is strictly non-refundable under any circumstances.`],
+      ["Arrival & Departure Timings", "Check-in time begins at 2:00 PM. Check-out must be strictly completed by 11:00 AM to facilitate turnaround."],
+      ["Balance Settlement", `The remaining outstanding balance of Rs. ${balanceVal.toLocaleString("en-IN")} must be cleared entirely at the time of check-in.`],
+      ["Swimming Pool Rules", "Proper nylon swimwear is mandatory. Pool access and associated pool activities close strictly by 10:00 PM."],
+      ["Sound & Quiet Hours", "Music speakers, microphone usage, and high-volume sound limits are strictly implemented after 10:00 PM."],
+      ["Property Rules & Verification", "All guests must provide valid government-issued photo ID cards upon check-in. Any damage will be billed."]
+    ];
+  }
+  rulesList = rulesList.slice(0, 6);
+
+  for (let i = 0; i < rulesList.length; i++) {
     const yRule = 465 - (i * 42);
     stream2 += `q 0.8 0.2 0.2 rg ${pdf.rect(65, yRule + 3, 3, 3, true, false)} Q\n`;
-    stream2 += pdf.text(`${rules[i][0]}:`, 75, yRule, 8.5, "F2", "0.8 0.2 0.2") + "\n";
-    stream2 += pdf.text(rules[i][1], 205, yRule, 7.8, "F1", "0.2 0.2 0.2") + "\n";
+    stream2 += pdf.text(`${rulesList[i][0]}:`, 75, yRule, 8.5, "F2", "0.8 0.2 0.2") + "\n";
+    stream2 += pdf.text(rulesList[i][1], 205, yRule, 7.8, "F1", "0.2 0.2 0.2") + "\n";
   }
 
   stream2 += pdf.text(`Thank you for choosing Stayora. We look forward to hosting your group for an elite getaway at ${property.title}!`, 50, 155, 9, "F3", "0.3 0.3 0.3") + "\n";
@@ -425,7 +444,7 @@ export async function sendBookingConfirmationEmail(
         <div class="container">
           <div class="header">
             <h1>STAYORA</h1>
-            <span>Luxury Travel & Boutique Retreats</span>
+            <span>Boutique Retreats</span>
           </div>
           <div class="content">
             <p class="welcome">Dear Traveler,</p>
@@ -501,7 +520,7 @@ export async function sendBookingConfirmationEmail(
     });
 
     const mailOptions: any = {
-      from: `"Stayora Luxury Bookings" <${emailUser}>`,
+      from: `"Stayora Bookings" <${emailUser}>`,
       to: toEmail,
       subject: `Booking Confirmed: ${property.title} | Stayora`,
       html: emailHtml,

@@ -96,6 +96,10 @@ const propertySchema = new Schema(
       type: [String],
       default: [],
     },
+    rules: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,

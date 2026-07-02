@@ -31,12 +31,12 @@ export async function generateMetadata({
 
   if (!property) {
     return {
-      title: "Luxury Property Not Found | Stayora",
+      title: "Property Not Found | Stayora",
     };
   }
 
   return {
-    title: `${property.title} | Luxury Stays in ${property.city} | Stayora`,
+    title: `${property.title} | Stays in ${property.city} | Stayora`,
     description: property.description.substring(0, 160),
     openGraph: {
       title: `${property.title} | Stayora`,
@@ -203,7 +203,7 @@ export default async function PropertyDetailsPage({
 
             {/* Specifications Details */}
             <div className="flex flex-col gap-4">
-              <h4 className="text-xs uppercase tracking-widest text-gold font-bold">Luxury Amenities Included</h4>
+              <h4 className="text-xs uppercase tracking-widest text-gold font-bold">Amenities Included</h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {property.amenities.map((amenity: string) => (
                   <div

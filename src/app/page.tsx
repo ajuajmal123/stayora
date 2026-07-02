@@ -234,11 +234,11 @@ export default async function HomePage() {
 
                   <CardFooter className="p-4 pt-3 justify-between items-center border-t border-emerald-rich/5 mt-2 bg-emerald-rich/[0.01]">
                     {prop.rating > 0 ? (
-                      <span className="bg-gold/10 text-gold border border-gold/20 px-2 py-0.5 rounded-sm flex items-center gap-1 text-[9px] font-bold">
+                      <span className="bg-gold/10 text-gold border border-gold/25 px-2 py-0.5 rounded-sm flex items-center gap-1 text-[9px] font-bold">
                         <Star className="h-3 w-3 fill-gold text-gold" /> {prop.rating}
                       </span>
                     ) : (
-                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Luxury Standard</span>
+                      <span />
                     )}
                     <Link href={`/stays/${prop.slug}`}>
                       <Button variant="luxury" size="sm" className="h-8 text-[10px] py-0 tracking-wider font-bold uppercase px-4">

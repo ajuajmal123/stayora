@@ -9,7 +9,7 @@ export const Footer: React.FC = () => {
       title: "Explore",
       links: [
         { name: "Private Villas", href: "#" },
-        { name: "Luxury Penthouses", href: "#" },
+        { name: "Penthouses", href: "#" },
         { name: "Curated Resorts", href: "#" },
         { name: "Destinations", href: "#" },
       ],
@@ -45,7 +45,7 @@ export const Footer: React.FC = () => {
             <img src="/image.png" alt="Stayora Logo" className="h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-102" />
           </Link>
           <p className="text-xs text-luxury-cream/60 leading-relaxed max-w-sm">
-            Stayora redefines the art of travel. We connect discerning travelers with the world’s most exquisite, private properties and bespoke experiences, crafted for absolute comfort and luxury.
+            Stayora redefines the art of travel. We connect discerning travelers with the world’s most exquisite, private properties and bespoke experiences, crafted for absolute comfort.
           </p>
           <div className="flex items-center gap-4 text-gold-subtle">
             <Link href="#" className="hover:text-gold transition-colors" aria-label="Instagram">

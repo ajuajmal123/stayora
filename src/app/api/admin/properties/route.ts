@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
       images,
       destination,
       unavailableDates,
+      rules,
     } = body;
 
     // Validation
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
       agent: admin._id,
       destination: destination || null,
       unavailableDates: unavailableDates || [],
+      rules: rules || [],
     });
 
     await newProperty.save();

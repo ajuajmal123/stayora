@@ -10,7 +10,7 @@ import Button from "@/components/ui/Button";
 import { Compass, Sparkles, MapPin } from "lucide-react";
 
 export const metadata = {
-  title: "Exclusive Destinations | Stayora Luxury Travel",
+  title: "Exclusive Destinations | Stayora Curated Travel",
   description: "Explore Stayora's portfolio of curated world-class travel locations including the French Riviera, Amalfi Coast, and Swiss Alps.",
 };
 

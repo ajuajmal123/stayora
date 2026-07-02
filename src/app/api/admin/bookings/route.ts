@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     await verifyAdmin();
 
     const body = await req.json();
-    const { propertyId, name, email, checkIn, checkOut, guests, totalPrice, status, paymentStatus } = body;
+    const { propertyId, name, email, checkIn, checkOut, guests, totalPrice, status, paymentStatus, customAmenities, customRules } = body;
 
     // Validation
     if (!name || !email || !propertyId || !mongoose.isValidObjectId(propertyId) || !checkIn || !checkOut || guests === undefined || totalPrice === undefined) {
@@ -96,6 +96,8 @@ export async function POST(req: NextRequest) {
       totalPrice: Number(totalPrice),
       status: bookingStatus,
       paymentStatus: payment,
+      customAmenities: customAmenities ? customAmenities.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
+      customRules: customRules ? customRules.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
     });
 
     await newBooking.save();

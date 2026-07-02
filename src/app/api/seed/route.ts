@@ -8,6 +8,7 @@ import Review from "@/models/Review";
 import HeroBanner from "@/models/HeroBanner";
 import Booking from "@/models/Booking";
 import TourPackage from "@/models/TourPackage";
+import Blog from "@/models/Blog";
 import { ApiResponse } from "@/lib/api-response";
 
 export async function GET(req: NextRequest) {
@@ -23,6 +24,7 @@ export async function GET(req: NextRequest) {
     await HeroBanner.deleteMany({});
     await Booking.deleteMany({});
     await TourPackage.deleteMany({});
+    await Blog.deleteMany({});
 
     console.log("🧹 Database cleared");
 
@@ -458,6 +460,127 @@ export async function GET(req: NextRequest) {
 
     const seededPackages = await TourPackage.create(tourPackagesData);
     console.log("🎒 Tour Packages seeded");
+
+    const blogsData = [
+      {
+        title: "Unveiling the Mystical Western Ghats: A Guide to Monsoon Treks",
+        excerpt: "Discover the lush, misty trails of the Western Ghats during the magical monsoon season. From Wayanad to Kudremukh, explore top trekking destinations, preparation tips, and hidden eco-stays.",
+        content: `The Western Ghats, a UNESCO World Heritage site and one of the world's eight 'hottest hotspots' of biological diversity, transforms into a verdant paradise during the monsoons. From June to September, the mountains are cloaked in thick mists, waterfalls cascade down sheer cliffs, and valleys bloom in vibrant shades of green.
+
+### Top Trekking Destinations in the Western Ghats
+
+1. **Chembra Peak, Wayanad**: Known for its famous heart-shaped lake, Chembra Peak offers a moderate trek through tea estates and dense forests, revealing panoramic views of Wayanad's mist-covered hills.
+2. **Kudremukh Trek, Chikmagalur**: Shaped like a horse's face, this trail takes you through shola grassland patches and rolling peaks. The monsoon rains keep the ambient temperature crisp and refreshing.
+3. **Mullayanagiri, Karnataka**: As the highest peak in Karnataka, Mullayanagiri features stone pathways covered in moss and mist, offering a breathtaking ridge walk that feels like walking above the clouds.
+
+### Essential Gear for Monsoon Treks
+
+Trekking in the rains requires specialized preparation. Be sure to pack:
+- High-traction waterproof trekking boots.
+- A lightweight, breathable poncho or rain jacket.
+- Dry bags to protect your electronics and spare clothes.
+- Eco-friendly leech repellents (like salt or tobacco paste).
+
+Monsoon tourism in the Ghats is not just an adventure—it is a sensory escape. Ensure you support local communities by staying in eco-conscious homestays and respecting the sensitive mountain ecology.`,
+        coverImage: "https://images.unsplash.com/photo-1542856391-010fb87dcfed?auto=format&fit=crop&w=1200&q=80",
+        author: "Stayora Explorer",
+        tags: ["Western Ghats", "Monsoon Treks", "Eco Tourism"]
+      },
+      {
+        title: "The Soul of Western Ghats: Coffee Plantation Walks and Wildlife Trails",
+        excerpt: "Immerse yourself in the rich aromas and rich biodiversity of Southern India's coffee heartlands. Learn about plantation walks, birdwatching, and luxury estate stays.",
+        content: `Stretching parallel to the western coast of India, the Western Ghats mountain range is home to some of the finest coffee plantations in the world. Nestled under a dense canopy of shade trees, these coffee estates in Coorg, Chikmagalur, and Wayanad are biodiverse sanctuaries where wildlife and agriculture live in harmony.
+
+### The Art of Coffee Plantation Walks
+
+A typical morning walk on a coffee plantation is a journey of sensory discovery. Guided by local hosts, you will:
+- Learn to distinguish between Arabica and Robusta coffee plants.
+- Witness the harvesting process and learn how red coffee cherries are picked and sun-dried.
+- Breathe in the sweet scent of white coffee blossoms (usually in late spring).
+
+### Wildlife Encounters on the Trail
+
+The shade-grown coffee model ensures that the plantations function as extended forest corridors. During your walks, keep an eye out for:
+- Over 300 species of birds, including the Malabar Whistling Thrush and Great Pied Hornbill.
+- Giant Malabar Squirrels leaping across tree tops.
+- Exotic butterflies like the Blue Mormon fluttering around wildflowers.
+
+At Stayora, we curate stays that are built directly inside these active plantations, offering private bungalows where you can wake up to the aroma of freshly roasted coffee and the serene chirping of forest birds.`,
+        coverImage: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80",
+        author: "Stayora Concierge",
+        tags: ["Coffee Plantations", "Wildlife", "Luxury Travel"]
+      },
+      {
+        title: "Top Hidden Waterfalls in the Western Ghats You Need to Visit",
+        excerpt: "Get away from the crowds and discover the pristine, secret waterfalls tucked away in the deep jungles of the Western Ghats. A list of untouched gems and how to access them.",
+        content: `While popular spots like Dudhsagar and Jog Falls draw massive crowds, the Western Ghats hide hundreds of seasonal, pristine waterfalls deep inside private estates and reserve forests. Visiting these hidden gems offers a peaceful connection with nature, away from commercial tourism.
+
+### 1. Soochipara & Meenmutty Falls (Wayanad, Kerala)
+Though well-known, Meenmutty requires a brief forest hike that keeps the casual tourist at bay. The water cascades down three tiers, surrounded by sheer rock faces.
+
+### 2. Hebbe Falls (Chikmagalur, Karnataka)
+Located inside a coffee estate forest, Hebbe Falls drops from 550 feet in two stages. The water is mineral-rich and believed to have therapeutic qualities.
+
+### 3. Jog Falls Secret Viewpoints (Shimoga, Karnataka)
+Rather than viewing Jog Falls from the tourist platform, local guides can lead you through forest trails to secret viewpoints that overlook the massive gorge, offering a dramatic perspective of the Raja, Rani, Roarer, and Rocket cascades.
+
+### Sustainable Waterfall Tourism Tips
+
+To keep these spots pristine for future travelers:
+- Never leave plastic wrappers, bottles, or trash behind.
+- Avoid using chemical soap or shampoo in the natural pools.
+- Respect warning signs; currents can become extremely strong within minutes during rain spells.`,
+        coverImage: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80",
+        author: "Eco Traveler",
+        tags: ["Western Ghats", "Waterfalls", "Adventure"]
+      },
+      {
+        title: "A Culinary Journey Through the Western Ghats: Spices, Herbs, and Local Flavors",
+        excerpt: "Explore the unique gastronomy of the Western Ghats region. Discover how cardamoms, pepper, wild honey, and indigenous herbs shape traditional culinary styles.",
+        content: `The Western Ghats is not only a biodiversity hotspot but also a rich culinary treasure trove. The forest slopes are lined with wild cardamoms, black pepper vines, and nutmegs, which have seasoned local cuisines for generations.
+
+### The Cardamom and Pepper Heartlands
+
+Walking through the spice plantations of Coorg and Wayanad, you will see green cardamom pods hanging near the damp roots and clusters of black pepper clinging to the towering silver oak trees. These spices are harvested by hand and dried under the gentle mountain sun, retaining their intense essential oils.
+
+### Traditional Culinary Delicacies
+
+- **Kadambuttu & Pandi Curry (Coorg)**: Steamed rice balls served with a slow-cooked, dark-spiced pork gravy seasoned with local bird's eye chilies and 'Kachampuli' (a dark, thick garcinia vinegar).
+- **Pathiri & Malabar Biryani (Wayanad)**: Thin rice pancakes and ghee biryanis flavored with fresh local coriander, mint, and cardamom seeds.
+- **Akki Roti & Bamboo Shoot Curry (Chikmagalur)**: Spicy rice flatbreads served with tender, forest-foraged bamboo shoots slow-cooked in a coconut and mustard seed paste.
+
+### Wild Honey & Indigenous Herbs
+
+Forest-dwelling tribal communities have harvested wild rock bee honey from high cliffs for centuries. This medicinal honey, along with unique forest herbs like wild turmeric and mountain ginger, forms the backbone of the region's traditional healing and cooking.`,
+        coverImage: "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=1200&q=80",
+        author: "Spice Explorer",
+        tags: ["Gastronomy", "Spices", "Western Ghats"]
+      },
+      {
+        title: "Responsible Travel in the Western Ghats: Protecting Fragile Ecosystems",
+        excerpt: "Learn how to be an eco-conscious traveler when visiting the delicate biodiversity hotspots of Southern India. Crucial rules for sustainable mountain stay experiences.",
+        content: `As tourism in the Western Ghats continues to rise, preserving its pristine beauty is our shared responsibility. The Ghats are home to endangered species like the Nilgiri Tahr and the Lion-tailed Macaque, whose forest habitats are sensitive to human encroachment.
+
+### Why the Ghats Ecosystem is Vulnerable
+
+The terrain and heavy monsoons make the soil highly susceptible to erosion. In addition, littering and unregulated plastic disposal disrupt mountain streams, poisoning wildlife and clogging natural water filters.
+
+### Key Guidelines for Eco-Conscious Travelers
+
+1. **Say No to Single-Use Plastics**: Carry a reusable copper or stainless steel water bottle. Avoid bringing plastic wrappers, bags, or disposable cutlery into the forest areas.
+2. **Stay on Marked Trails**: Straying off established paths damages delicate undergrowth, crushes insects, and contributes to soil erosion.
+3. **Minimize Noise Pollution**: The dense canopy houses hundreds of bird and mammal species. Avoid playing loud music or making high-volume sounds, especially during evening forest treks.
+4. **Choose Eco-Certified Stays**: Book accommodation with homestays that practice solar power generation, organic composting, rainwater harvesting, and support local community employment.
+
+By traveling mindfully, we can ensure that these peaks remain wild and beautiful for generations of travelers to come.`,
+        coverImage: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80",
+        author: "Eco Advocate",
+        tags: ["Eco Tourism", "Conservation", "Responsible Travel"]
+      }
+    ];
+
+    const seededBlogs = await Blog.create(blogsData);
+    console.log("📝 Blogs seeded");
     console.log("✅ Database successfully seeded!");
 
     return ApiResponse.success({
@@ -467,6 +590,7 @@ export async function GET(req: NextRequest) {
       propertiesCount: seededProperties.length,
       destinationsCount: seededDestinations.length,
       packagesCount: seededPackages.length,
+      blogsCount: seededBlogs.length,
     });
   } catch (error) {
     return ApiResponse.error(error);
