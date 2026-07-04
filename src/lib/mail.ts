@@ -35,6 +35,8 @@ function getPngData(filePath: string) {
   let bitDepth = 0;
   let colorType = 0;
   let idatBuffers: Buffer[] = [];
+  let palette: Buffer | null = null;
+  let trns: Buffer | null = null;
 
   while (pos < buffer.length) {
     const length = buffer.readUInt32BE(pos);
@@ -48,6 +50,10 @@ function getPngData(filePath: string) {
       colorType = buffer[pos + 9];
     } else if (type === "IDAT") {
       idatBuffers.push(buffer.subarray(pos, pos + length));
+    } else if (type === "PLTE") {
+      palette = buffer.subarray(pos, pos + length);
+    } else if (type === "tRNS") {
+      trns = buffer.subarray(pos, pos + length);
     } else if (type === "IEND") {
       break;
     }
@@ -57,7 +63,11 @@ function getPngData(filePath: string) {
   const compressed = Buffer.concat(idatBuffers);
   const decompressed = zlib.inflateSync(compressed);
 
-  const bpp = colorType === 6 ? 4 : 3;
+  let bpp = 1;
+  if (colorType === 2) bpp = 3;
+  else if (colorType === 4) bpp = 2;
+  else if (colorType === 6) bpp = 4;
+
   const rowBytes = width * bpp;
   const imgData = Buffer.alloc(width * height * 3);
   let readPos = 0;
@@ -116,18 +126,44 @@ function getPngData(filePath: string) {
     }
 
     for (let x = 0; x < width; x++) {
-      const r = currentRow[x * bpp];
-      const g = currentRow[x * bpp + 1];
-      const b = currentRow[x * bpp + 2];
-      if (bpp === 4) {
+      if (colorType === 3) {
+        const index = currentRow[x * bpp];
+        if (palette) {
+          const r = palette[index * 3];
+          const g = palette[index * 3 + 1];
+          const b = palette[index * 3 + 2];
+          const a = trns && index < trns.length ? trns[index] / 255 : 1.0;
+          imgData[writePos++] = Math.round(r * a + 255 * (1 - a));
+          imgData[writePos++] = Math.round(g * a + 255 * (1 - a));
+          imgData[writePos++] = Math.round(b * a + 255 * (1 - a));
+        } else {
+          imgData[writePos++] = 255;
+          imgData[writePos++] = 255;
+          imgData[writePos++] = 255;
+        }
+      } else if (colorType === 0) {
+        const val = currentRow[x * bpp];
+        imgData[writePos++] = val;
+        imgData[writePos++] = val;
+        imgData[writePos++] = val;
+      } else if (colorType === 2) {
+        imgData[writePos++] = currentRow[x * bpp];
+        imgData[writePos++] = currentRow[x * bpp + 1];
+        imgData[writePos++] = currentRow[x * bpp + 2];
+      } else if (colorType === 4) {
+        const val = currentRow[x * bpp];
+        const a = currentRow[x * bpp + 1] / 255;
+        imgData[writePos++] = Math.round(val * a + 255 * (1 - a));
+        imgData[writePos++] = Math.round(val * a + 255 * (1 - a));
+        imgData[writePos++] = Math.round(val * a + 255 * (1 - a));
+      } else {
+        const r = currentRow[x * bpp];
+        const g = currentRow[x * bpp + 1];
+        const b = currentRow[x * bpp + 2];
         const a = currentRow[x * bpp + 3] / 255;
         imgData[writePos++] = Math.round(r * a + 255 * (1 - a));
         imgData[writePos++] = Math.round(g * a + 255 * (1 - a));
         imgData[writePos++] = Math.round(b * a + 255 * (1 - a));
-      } else {
-        imgData[writePos++] = r;
-        imgData[writePos++] = g;
-        imgData[writePos++] = b;
       }
     }
 
@@ -191,8 +227,17 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
     return `q 0.2 0.7 0.3 rg 2 w ${x} ${y+3} m ${x+3} ${y} l ${x+9} ${y+7} l S Q`;
   };
 
-  // Build stream 1 (Page 1)
+  // Layout Design Dimensions
+  // Coordinates match standard Letter/A4 portrait format (w=595, h=842)
   let stream1 = "";
+  let stream2 = "";
+
+  // Draw elegant background canvas elements on Page 1
+  // Top green branding bar (emerald dark)
+  stream1 += `q 0.01 0.11 0.09 rg ${pdf.rect(0, 812, 595, 30, true, false)} Q\n`;
+  // Gold accent line right below it
+  stream1 += `q 0.72 0.56 0.28 rg ${pdf.rect(0, 808, 595, 4, true, false)} Q\n`;
+
   // Draw light gold background for check-in / check-out boxes
   stream1 += `q 0.99 0.99 0.97 rg 0.87 0.73 0.45 RG 1 w ${pdf.rect(50, 630, 235, 70, true, true)} Q\n`;
   stream1 += `q 0.99 0.99 0.97 rg 0.87 0.73 0.45 RG 1 w ${pdf.rect(310, 630, 235, 70, true, true)} Q\n`;
@@ -222,9 +267,9 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
 
   // Page 1 Header Rendering
   if (hasLogo) {
-    const displayWidth = 140;
+    const displayWidth = 80;
     const displayHeight = (logoHeight / logoWidth) * displayWidth;
-    stream1 += `q ${displayWidth} 0 0 ${displayHeight} 50 758 cm /Logo Do Q\n`;
+    stream1 += `q ${displayWidth} 0 0 ${displayHeight} 50 762 cm /Logo Do Q\n`;
   } else {
     // Fallback: draw vector logo
     stream1 += `q 0.72 0.56 0.28 rg 1 w 50 771 m 60 786 l 70 771 l 60 756 l h B Q\n`;
@@ -304,7 +349,7 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
   stream1 += pdf.text("Page 1", 520, 40, 8, "F1", "0.5 0.5 0.5") + "\n";
 
   // Build stream 2 (Page 2)
-  let stream2 = "";
+  stream2 = "";
   // Draw header divider
   stream2 += `q 0.01 0.11 0.09 RG 1.5 w ${pdf.line(50, 760, 545, 760)} Q\n`;
 
