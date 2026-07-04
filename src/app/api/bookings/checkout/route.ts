@@ -55,21 +55,7 @@ export async function POST(req: NextRequest) {
       throw new ValidationError(`This property only accommodates up to ${property.maxGuests} guests`);
     }
 
-    // 2. Availability Check: Check for overlapping active bookings
-    const overlappingBooking = await Booking.findOne({
-      property: propertyId,
-      status: { $ne: "cancelled" }, // Ignore cancelled bookings
-      $or: [
-        {
-          checkIn: { $lt: checkOutDate },
-          checkOut: { $gt: checkInDate },
-        },
-      ],
-    });
-
-    if (overlappingBooking) {
-      throw new ConflictError("These dates are already booked. Please choose other dates.");
-    }
+    // 2. Availability Check: Date overlaps are permitted for Stayora bookings
 
     // 3. Calculate Pricing
     const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());

@@ -1,4 +1,7 @@
 import nodemailer from "nodemailer";
+import fs from "fs";
+import path from "path";
+import zlib from "zlib";
 
 interface BookingDetails {
   _id: string;
@@ -20,10 +23,143 @@ interface PropertyDetails {
   amenities?: string[];
 }
 
+function getPngData(filePath: string) {
+  const buffer = fs.readFileSync(filePath);
+  if (buffer.readUInt32BE(0) !== 0x89504E47 || buffer.readUInt32BE(4) !== 0x0D0A1A0A) {
+    throw new Error("Invalid PNG signature");
+  }
+  
+  let pos = 8;
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = 0;
+  let idatBuffers: Buffer[] = [];
+
+  while (pos < buffer.length) {
+    const length = buffer.readUInt32BE(pos);
+    const type = buffer.toString("ascii", pos + 4, pos + 8);
+    pos += 8;
+
+    if (type === "IHDR") {
+      width = buffer.readUInt32BE(pos);
+      height = buffer.readUInt32BE(pos + 4);
+      bitDepth = buffer[pos + 8];
+      colorType = buffer[pos + 9];
+    } else if (type === "IDAT") {
+      idatBuffers.push(buffer.subarray(pos, pos + length));
+    } else if (type === "IEND") {
+      break;
+    }
+    pos += length + 4;
+  }
+
+  const compressed = Buffer.concat(idatBuffers);
+  const decompressed = zlib.inflateSync(compressed);
+
+  const bpp = colorType === 6 ? 4 : 3;
+  const rowBytes = width * bpp;
+  const imgData = Buffer.alloc(width * height * 3);
+  let readPos = 0;
+  let writePos = 0;
+
+  const prevRow = Buffer.alloc(rowBytes);
+  const currentRow = Buffer.alloc(rowBytes);
+
+  for (let y = 0; y < height; y++) {
+    const filterType = decompressed[readPos++];
+    
+    for (let x = 0; x < rowBytes; x++) {
+      currentRow[x] = decompressed[readPos++];
+    }
+
+    if (filterType === 0) {
+      // None
+    } else if (filterType === 1) {
+      // Sub
+      for (let x = 0; x < rowBytes; x++) {
+        const left = x >= bpp ? currentRow[x - bpp] : 0;
+        currentRow[x] = (currentRow[x] + left) & 0xff;
+      }
+    } else if (filterType === 2) {
+      // Up
+      for (let x = 0; x < rowBytes; x++) {
+        const up = prevRow[x];
+        currentRow[x] = (currentRow[x] + up) & 0xff;
+      }
+    } else if (filterType === 3) {
+      // Average
+      for (let x = 0; x < rowBytes; x++) {
+        const left = x >= bpp ? currentRow[x - bpp] : 0;
+        const up = prevRow[x];
+        currentRow[x] = (currentRow[x] + Math.floor((left + up) / 2)) & 0xff;
+      }
+    } else if (filterType === 4) {
+      // Paeth
+      for (let x = 0; x < rowBytes; x++) {
+        const left = x >= bpp ? currentRow[x - bpp] : 0;
+        const up = prevRow[x];
+        const leftUp = x >= bpp ? prevRow[x - bpp] : 0;
+        
+        const p = left + up - leftUp;
+        const pa = Math.abs(p - left);
+        const pb = Math.abs(p - up);
+        const pc = Math.abs(p - leftUp);
+        
+        let nearest = 0;
+        if (pa <= pb && pa <= pc) nearest = left;
+        else if (pb <= pc) nearest = up;
+        else nearest = leftUp;
+
+        currentRow[x] = (currentRow[x] + nearest) & 0xff;
+      }
+    }
+
+    for (let x = 0; x < width; x++) {
+      const r = currentRow[x * bpp];
+      const g = currentRow[x * bpp + 1];
+      const b = currentRow[x * bpp + 2];
+      if (bpp === 4) {
+        const a = currentRow[x * bpp + 3] / 255;
+        imgData[writePos++] = Math.round(r * a + 255 * (1 - a));
+        imgData[writePos++] = Math.round(g * a + 255 * (1 - a));
+        imgData[writePos++] = Math.round(b * a + 255 * (1 - a));
+      } else {
+        imgData[writePos++] = r;
+        imgData[writePos++] = g;
+        imgData[writePos++] = b;
+      }
+    }
+
+    currentRow.copy(prevRow);
+  }
+
+  return {
+    width,
+    height,
+    pixelData: imgData
+  };
+}
+
 /**
  * Generates a valid PDF-1.4 file buffer containing the booking details matching the voucher layout design.
  */
 function generateBookingPdfBuffer(booking: any, property: any): Buffer {
+  const pngPath = path.join(process.cwd(), "public", "image.png");
+  let logoDeflatedPixels: Buffer | null = null;
+  let logoWidth = 0;
+  let logoHeight = 0;
+  let hasLogo = false;
+
+  try {
+    const png = getPngData(pngPath);
+    logoWidth = png.width;
+    logoHeight = png.height;
+    logoDeflatedPixels = zlib.deflateSync(png.pixelData);
+    hasLogo = true;
+  } catch (err) {
+    console.error("Failed to parse PNG logo:", err);
+  }
   const checkInDate = new Date(booking.checkIn);
   const checkOutDate = new Date(booking.checkOut);
 
@@ -84,14 +220,18 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
   stream1 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.rect(50, 70, 235, 210, false, true)} Q\n`;
   stream1 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.rect(310, 70, 235, 210, false, true)} Q\n`;
 
-  // Page 1 Text and Vector Logo commands
-  // Draw an elegant gold geometric diamond logo mark
-  stream1 += `q 0.72 0.56 0.28 rg 1 w 50 771 m 60 786 l 70 771 l 60 756 l h B Q\n`;
-  // Inner center dark green core
-  stream1 += `q 0.01 0.11 0.09 rg 59 770 2 2 re f Q\n`;
-
-  stream1 += pdf.text("STAYORA", 82, 771, 22, "F2", "0.01 0.11 0.09") + "\n";
-  stream1 += pdf.text("BOUTIQUE RETREATS", 82, 760, 6.5, "F2", "0.72 0.56 0.28") + "\n";
+  // Page 1 Header Rendering
+  if (hasLogo) {
+    const displayWidth = 140;
+    const displayHeight = (logoHeight / logoWidth) * displayWidth;
+    stream1 += `q ${displayWidth} 0 0 ${displayHeight} 50 758 cm /Logo Do Q\n`;
+  } else {
+    // Fallback: draw vector logo
+    stream1 += `q 0.72 0.56 0.28 rg 1 w 50 771 m 60 786 l 70 771 l 60 756 l h B Q\n`;
+    stream1 += `q 0.01 0.11 0.09 rg 59 770 2 2 re f Q\n`;
+    stream1 += pdf.text("STAYORA", 82, 771, 22, "F2", "0.01 0.11 0.09") + "\n";
+    stream1 += pdf.text("BOUTIQUE RETREATS", 82, 760, 6.5, "F2", "0.72 0.56 0.28") + "\n";
+  }
   stream1 += pdf.text(`${property.title.toUpperCase()} BOOKING VOUCHER`, 50, 742, 11, "F2", "0.72 0.56 0.28") + "\n";
   stream1 += pdf.text(`Property Location: ${property.address}, ${property.city} | Status: Confirmed`, 50, 728, 8.5, "F1", "0.4 0.4 0.4") + "\n";
 
@@ -189,7 +329,7 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
   stream2 += pdf.text("PAYMENT SUMMARY", 62, 718, 11, "F2", "0.01 0.11 0.09") + "\n";
 
   const totalVal = booking.totalPrice;
-  const advanceVal = typeof booking.advancePaid === "number" && booking.advancePaid > 0
+  const advanceVal = typeof booking.advancePaid === "number"
     ? booking.advancePaid
     : Math.round(totalVal * 0.2);
   const balanceVal = Math.max(0, totalVal - advanceVal);
@@ -247,65 +387,89 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
   const s1Content = `BT\nET\n${stream1}`;
   const s2Content = `BT\nET\n${stream2}`;
 
-  const s1Len = Buffer.byteLength(s1Content, "utf-8");
-  const s2Len = Buffer.byteLength(s2Content, "utf-8");
+  const s1Len = Buffer.byteLength(s1Content, "binary");
+  const s2Len = Buffer.byteLength(s2Content, "binary");
 
-  const pdfHeader = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R 6 0 R] /Count 2 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 595 842] /Contents 5 0 R >>
-endobj
-4 0 obj
-<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> /F3 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >> >> >>
-endobj
-5 0 obj
-<< /Length ${s1Len} >>
-stream
-`;
+  const objOffsets: number[] = [];
+  const outBuffers: Buffer[] = [];
+  let currentOffset = 0;
 
-  const pdfMiddle = `
-endstream
-endobj
-6 0 obj
-<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 595 842] /Contents 7 0 R >>
-endobj
-7 0 obj
-<< /Length ${s2Len} >>
-stream
-`;
+  const append = (data: string | Buffer) => {
+    const buf = typeof data === "string" ? Buffer.from(data, "binary") : data;
+    outBuffers.push(buf);
+    currentOffset += buf.length;
+  };
 
-  const pdfFooter = `
-endstream
-endobj
-xref
-0 8
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000212 00000 n 
-0000000343 00000 n 
-0000000450 00000 n 
-0000000557 00000 n 
-trailer
-<< /Size 8 /Root 1 0 R >>
-startxref
-900
-%%EOF
-`;
+  append("%PDF-1.4\n");
 
-  return Buffer.concat([
-    Buffer.from(pdfHeader, "utf-8"),
-    Buffer.from(s1Content, "utf-8"),
-    Buffer.from(pdfMiddle, "utf-8"),
-    Buffer.from(s2Content, "utf-8"),
-    Buffer.from(pdfFooter, "utf-8"),
-  ]);
+  const startObj = (id: number) => {
+    objOffsets[id] = currentOffset;
+    append(`${id} 0 obj\n`);
+  };
+
+  // Object 1: Catalog
+  startObj(1);
+  append("<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+
+  // Object 2: Pages
+  startObj(2);
+  append("<< /Type /Pages /Kids [3 0 R 6 0 R] /Count 2 >>\nendobj\n");
+
+  // Object 3: Page 1
+  startObj(3);
+  append("<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 595 842] /Contents 5 0 R >>\nendobj\n");
+
+  // Object 4: Resources
+  startObj(4);
+  let resDict = "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> /F3 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >> >>";
+  if (hasLogo) {
+    resDict += " /XObject << /Logo 8 0 R >>";
+  }
+  resDict += " >>\nendobj\n";
+  append(resDict);
+
+  // Object 5: Page 1 Content Stream
+  startObj(5);
+  append(`<< /Length ${s1Len} >>\nstream\n`);
+  append(s1Content);
+  append("\nendstream\nendobj\n");
+
+  // Object 6: Page 2
+  startObj(6);
+  append("<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 595 842] /Contents 7 0 R >>\nendobj\n");
+
+  // Object 7: Page 2 Content Stream
+  startObj(7);
+  append(`<< /Length ${s2Len} >>\nstream\n`);
+  append(s2Content);
+  append("\nendstream\nendobj\n");
+
+  // Object 8: Logo image stream
+  if (hasLogo && logoDeflatedPixels) {
+    startObj(8);
+    append(`<< /Type /XObject /Subtype /Image /Width ${logoWidth} /Height ${logoHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length ${logoDeflatedPixels.length} >>\nstream\n`);
+    append(logoDeflatedPixels);
+    append("\nendstream\nendobj\n");
+  }
+
+  // Cross-reference table (xref)
+  const xrefStart = currentOffset;
+  const numObjects = hasLogo ? 9 : 8;
+  append("xref\n");
+  append(`0 ${numObjects}\n`);
+  append("0000000000 65535 f \n");
+  for (let i = 1; i < numObjects; i++) {
+    const offsetStr = String(objOffsets[i]).padStart(10, "0");
+    append(`${offsetStr} 00000 n \n`);
+  }
+
+  // Trailer
+  append(`trailer\n<< /Size ${numObjects} /Root 1 0 R >>\n`);
+  append("startxref\n");
+  append(`${xrefStart}\n`);
+  append("%%EOF\n");
+
+  return Buffer.concat(outBuffers);
 }
 
 /**

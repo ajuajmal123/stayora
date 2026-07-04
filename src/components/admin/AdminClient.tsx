@@ -305,19 +305,35 @@ export const AdminClient: React.FC<AdminClientProps> = ({
   // Update booking status helper
   const handleUpdateBooking = async (bookingId: string, status?: string, paymentStatus?: string) => {
     let advancePaid: number | undefined = undefined;
+    let totalPrice: number | undefined = undefined;
 
     if (status === "confirmed") {
       const bookingObj = bookings.find((b: any) => b._id === bookingId);
-      const defaultAdvance = bookingObj ? Math.round(bookingObj.totalPrice * 0.2) : 0;
-      const inputVal = prompt(
-        `Confirming Booking.\nEnter the Advance Money Paid (default 20% is ₹${defaultAdvance}):`,
-        defaultAdvance.toString()
-      );
-      if (inputVal === null) return; // user cancelled
-      advancePaid = Number(inputVal);
-      if (isNaN(advancePaid) || advancePaid < 0) {
-        alert("Please enter a valid amount.");
-        return;
+      if (bookingObj) {
+        // 1. Prompt for total amount
+        const priceInput = prompt(
+          `Confirming Booking.\nModify Agreed Total Price (₹ INR):`,
+          bookingObj.totalPrice.toString()
+        );
+        if (priceInput === null) return; // cancel operation
+        totalPrice = Number(priceInput);
+        if (isNaN(totalPrice) || totalPrice < 0) {
+          alert("Please enter a valid price.");
+          return;
+        }
+
+        // 2. Prompt for advance amount
+        const defaultAdvance = Math.round(totalPrice * 0.2);
+        const advanceInput = prompt(
+          `Enter Advance Money Paid (₹ INR) (default 20% is ₹${defaultAdvance}):`,
+          defaultAdvance.toString()
+        );
+        if (advanceInput === null) return; // cancel operation
+        advancePaid = Number(advanceInput);
+        if (isNaN(advancePaid) || advancePaid < 0) {
+          alert("Please enter a valid amount.");
+          return;
+        }
       }
     } else {
       if (!confirm("Are you sure you want to update this booking's state?")) return;
@@ -327,7 +343,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       const res = await fetch("/api/admin/bookings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId, status, paymentStatus, advancePaid })
+        body: JSON.stringify({ bookingId, status, paymentStatus, advancePaid, totalPrice })
       });
       const body = await res.json();
 

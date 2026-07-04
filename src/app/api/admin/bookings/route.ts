@@ -107,7 +107,7 @@ export async function PUT(req: NextRequest) {
     await verifyAdmin();
 
     const body = await req.json();
-    const { bookingId, status, paymentStatus, advancePaid } = body;
+    const { bookingId, status, paymentStatus, advancePaid, totalPrice } = body;
 
     if (!bookingId || !mongoose.isValidObjectId(bookingId)) {
       throw new ValidationError("Invalid Booking ID");
@@ -116,6 +116,22 @@ export async function PUT(req: NextRequest) {
     const booking = await Booking.findById(bookingId);
     if (!booking) {
       throw new NotFoundError("Booking not found");
+    }
+
+    // Assign custom financial details before dispatching the voucher email
+    if (totalPrice !== undefined) {
+      booking.totalPrice = Number(totalPrice);
+    }
+
+    if (advancePaid !== undefined) {
+      booking.advancePaid = Number(advancePaid);
+    }
+
+    if (paymentStatus) {
+      if (!["unpaid", "paid", "refunded"].includes(paymentStatus)) {
+        throw new ValidationError("Invalid payment status value");
+      }
+      booking.paymentStatus = paymentStatus;
     }
 
     if (status) {
@@ -147,17 +163,6 @@ export async function PUT(req: NextRequest) {
           }
         }
       }
-    }
-
-    if (paymentStatus) {
-      if (!["unpaid", "paid", "refunded"].includes(paymentStatus)) {
-        throw new ValidationError("Invalid payment status value");
-      }
-      booking.paymentStatus = paymentStatus;
-    }
-
-    if (advancePaid !== undefined) {
-      booking.advancePaid = Number(advancePaid);
     }
 
     await booking.save();
