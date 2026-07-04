@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     await verifyAdmin();
 
     const body = await req.json();
-    const { propertyId, name, email, checkIn, checkOut, guests, totalPrice, status, paymentStatus, customAmenities, customRules, phoneNumber } = body;
+    const { propertyId, name, email, checkIn, checkOut, guests, totalPrice, status, paymentStatus, customAmenities, customRules, phoneNumber, advancePaid } = body;
 
     // Validation
     if (!name || !email || !propertyId || !mongoose.isValidObjectId(propertyId) || !checkIn || !checkOut || guests === undefined || totalPrice === undefined) {
@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
       paymentStatus: payment,
       customAmenities: customAmenities ? customAmenities.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
       customRules: customRules ? customRules.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
+      advancePaid: advancePaid ? Number(advancePaid) : 0,
     });
 
     await newBooking.save();
@@ -106,7 +107,7 @@ export async function PUT(req: NextRequest) {
     await verifyAdmin();
 
     const body = await req.json();
-    const { bookingId, status, paymentStatus } = body;
+    const { bookingId, status, paymentStatus, advancePaid } = body;
 
     if (!bookingId || !mongoose.isValidObjectId(bookingId)) {
       throw new ValidationError("Invalid Booking ID");
@@ -153,6 +154,10 @@ export async function PUT(req: NextRequest) {
         throw new ValidationError("Invalid payment status value");
       }
       booking.paymentStatus = paymentStatus;
+    }
+
+    if (advancePaid !== undefined) {
+      booking.advancePaid = Number(advancePaid);
     }
 
     await booking.save();

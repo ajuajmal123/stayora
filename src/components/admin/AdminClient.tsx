@@ -184,7 +184,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
     paymentStatus: "unpaid",
     customAmenities: "",
     customRules: "",
-    phoneNumber: ""
+    phoneNumber: "",
+    advancePaid: ""
   });
   const [bookingFormError, setBookingFormError] = useState("");
   const [isSavingBooking, setIsSavingBooking] = useState(false);
@@ -303,13 +304,30 @@ export const AdminClient: React.FC<AdminClientProps> = ({
 
   // Update booking status helper
   const handleUpdateBooking = async (bookingId: string, status?: string, paymentStatus?: string) => {
-    if (!confirm("Are you sure you want to update this booking's state?")) return;
+    let advancePaid: number | undefined = undefined;
+
+    if (status === "confirmed") {
+      const bookingObj = bookings.find((b: any) => b._id === bookingId);
+      const defaultAdvance = bookingObj ? Math.round(bookingObj.totalPrice * 0.2) : 0;
+      const inputVal = prompt(
+        `Confirming Booking.\nEnter the Advance Money Paid (default 20% is ₹${defaultAdvance}):`,
+        defaultAdvance.toString()
+      );
+      if (inputVal === null) return; // user cancelled
+      advancePaid = Number(inputVal);
+      if (isNaN(advancePaid) || advancePaid < 0) {
+        alert("Please enter a valid amount.");
+        return;
+      }
+    } else {
+      if (!confirm("Are you sure you want to update this booking's state?")) return;
+    }
 
     try {
       const res = await fetch("/api/admin/bookings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId, status, paymentStatus })
+        body: JSON.stringify({ bookingId, status, paymentStatus, advancePaid })
       });
       const body = await res.json();
 
@@ -568,7 +586,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
       paymentStatus: "unpaid",
       customAmenities: "",
       customRules: "",
-      phoneNumber: ""
+      phoneNumber: "",
+      advancePaid: ""
     });
     setBookingFormError("");
     setIsBookingModalOpen(true);
@@ -587,6 +606,7 @@ export const AdminClient: React.FC<AdminClientProps> = ({
           ...bookingForm,
           guests: Number(bookingForm.guests),
           totalPrice: Number(bookingForm.totalPrice),
+          advancePaid: bookingForm.advancePaid ? Number(bookingForm.advancePaid) : undefined
         })
       });
       const body = await res.json();
@@ -2486,10 +2506,10 @@ export const AdminClient: React.FC<AdminClientProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Input
               id="booking-guests"
-              label="Total Guests Count"
+              label="Total Guests"
               type="number"
               required
               min="1"
@@ -2498,16 +2518,25 @@ export const AdminClient: React.FC<AdminClientProps> = ({
             />
             <Input
               id="booking-price"
-              label="Agreed Total Cost (₹ INR)"
+              label="Agreed Price (₹)"
               type="number"
               required
               min="0"
               value={bookingForm.totalPrice}
               onChange={(e) => setBookingForm((prev) => ({ ...prev, totalPrice: e.target.value }))}
             />
+            <Input
+              id="booking-advance"
+              label="Advance Paid (₹)"
+              type="number"
+              min="0"
+              value={bookingForm.advancePaid}
+              onChange={(e) => setBookingForm((prev) => ({ ...prev, advancePaid: e.target.value }))}
+              placeholder="Blank for 20%"
+            />
             <div className="flex flex-col gap-1.5 w-full">
               <label htmlFor="booking-status" className="text-xs font-semibold uppercase tracking-wider text-emerald-rich dark:text-gold-subtle">
-                Booking Status
+                Status
               </label>
               <select
                 id="booking-status"
@@ -2515,8 +2544,8 @@ export const AdminClient: React.FC<AdminClientProps> = ({
                 value={bookingForm.status}
                 onChange={(e) => setBookingForm((prev) => ({ ...prev, status: e.target.value }))}
               >
-                <option value="pending">Pending Enquiry</option>
-                <option value="confirmed">Confirmed (Triggers Email & PDF)</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
               </select>
             </div>
           </div>

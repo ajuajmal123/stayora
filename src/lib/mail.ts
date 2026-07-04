@@ -84,10 +84,16 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
   stream1 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.rect(50, 70, 235, 210, false, true)} Q\n`;
   stream1 += `q 0.9 0.85 0.75 RG 0.5 w ${pdf.rect(310, 70, 235, 210, false, true)} Q\n`;
 
-  // Page 1 Text commands
-  stream1 += pdf.text("STAYORA", 50, 775, 26, "F2", "0.01 0.11 0.09") + "\n";
-  stream1 += pdf.text(`${property.title.toUpperCase()} BOOKING VOUCHER`, 50, 750, 12, "F2", "0.72 0.56 0.28") + "\n";
-  stream1 += pdf.text(`Property Location: ${property.address}, ${property.city} | Status: Confirmed`, 50, 735, 9, "F1", "0.4 0.4 0.4") + "\n";
+  // Page 1 Text and Vector Logo commands
+  // Draw an elegant gold geometric diamond logo mark
+  stream1 += `q 0.72 0.56 0.28 rg 1 w 50 771 m 60 786 l 70 771 l 60 756 l h B Q\n`;
+  // Inner center dark green core
+  stream1 += `q 0.01 0.11 0.09 rg 59 770 2 2 re f Q\n`;
+
+  stream1 += pdf.text("STAYORA", 82, 771, 22, "F2", "0.01 0.11 0.09") + "\n";
+  stream1 += pdf.text("BOUTIQUE RETREATS", 82, 760, 6.5, "F2", "0.72 0.56 0.28") + "\n";
+  stream1 += pdf.text(`${property.title.toUpperCase()} BOOKING VOUCHER`, 50, 742, 11, "F2", "0.72 0.56 0.28") + "\n";
+  stream1 += pdf.text(`Property Location: ${property.address}, ${property.city} | Status: Confirmed`, 50, 728, 8.5, "F1", "0.4 0.4 0.4") + "\n";
 
   // Check-in details
   stream1 += pdf.text("CHECK-IN DATE", 65, 680, 8, "F1", "0.5 0.5 0.5") + "\n";
@@ -183,8 +189,10 @@ function generateBookingPdfBuffer(booking: any, property: any): Buffer {
   stream2 += pdf.text("PAYMENT SUMMARY", 62, 718, 11, "F2", "0.01 0.11 0.09") + "\n";
 
   const totalVal = booking.totalPrice;
-  const advanceVal = Math.round(totalVal * 0.2);
-  const balanceVal = totalVal - advanceVal;
+  const advanceVal = typeof booking.advancePaid === "number" && booking.advancePaid > 0
+    ? booking.advancePaid
+    : Math.round(totalVal * 0.2);
+  const balanceVal = Math.max(0, totalVal - advanceVal);
 
   stream2 += pdf.text("Total Tariff Amount", 65, 668, 9, "F1", "0.3 0.3 0.3") + "\n";
   stream2 += pdf.text(`Rs. ${totalVal.toLocaleString("en-IN")}`, 440, 668, 10, "F2", "0.01 0.11 0.09") + "\n";

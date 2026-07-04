@@ -72,6 +72,10 @@ const bookingSchema = new Schema(
       type: [String],
       default: [],
     },
+    advancePaid: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
