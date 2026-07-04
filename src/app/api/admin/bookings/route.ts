@@ -79,9 +79,11 @@ export async function POST(req: NextRequest) {
 
     // Trigger confirmation email with PDF if confirmed immediately
     if (bookingStatus === "confirmed") {
-      sendBookingConfirmationEmail(email, newBooking, property).catch((err) => {
+      try {
+        await sendBookingConfirmationEmail(email, newBooking, property);
+      } catch (err) {
         console.error("Manual booking email sending error:", err);
-      });
+      }
     }
 
     // Populate property details before returning
@@ -137,9 +139,11 @@ export async function PUT(req: NextRequest) {
         const targetEmail = booking.email || traveler?.email;
         
         if (targetEmail && property) {
-          sendBookingConfirmationEmail(targetEmail, booking, property).catch((err) => {
+          try {
+            await sendBookingConfirmationEmail(targetEmail, booking, property);
+          } catch (err) {
             console.error("Async email sending error:", err);
-          });
+          }
         }
       }
     }

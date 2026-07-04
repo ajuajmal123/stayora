@@ -146,7 +146,7 @@ export default async function PropertyDetailsPage({
 
       {/* Details Container */}
       <main className="flex-1 max-w-7xl mx-auto px-6 pt-32 pb-24 w-full flex flex-col gap-10">
-        
+
         {/* Navigation Breadcrumbs & Top Meta */}
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest font-semibold">
@@ -225,35 +225,28 @@ export default async function PropertyDetailsPage({
               Your Personal Host
             </h3>
             <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-full bg-emerald-accent flex items-center justify-center font-bold text-gold border border-gold/20 overflow-hidden">
-                {property.agent.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={property.agent.avatar} alt={property.agent.name} className="h-full w-full object-cover" />
-                ) : (
-                  property.agent.name[0]
-                )}
+              <div className="h-14 w-14 rounded-full bg-emerald-accent flex items-center justify-center font-bold text-gold border border-gold/20 overflow-hidden text-sm">
+                R
               </div>
               <div className="text-left leading-snug">
                 <p className="text-sm uppercase tracking-wider font-bold text-emerald-rich dark:text-gold">
-                  {property.agent.name}
+                  Ramshad
                 </p>
                 <span className="text-[10px] text-muted-foreground">Certified Stayora Agent</span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Available 24/7 during your stay. Marcus coordinates logistics, bookings for local Michelin chefs, private yachts, and local tour operators.
+              Available 24/7 during your stay. Ramshad coordinates logistics, bookings, and local tour operators.
             </p>
             <div className="flex flex-col gap-2 pt-2 text-xs font-medium text-emerald-rich/70 dark:text-luxury-cream/70">
               <div className="flex items-center gap-2">
                 <span>Email:</span>
-                <span className="text-emerald-rich dark:text-luxury-cream font-bold">{property.agent.email}</span>
+                <span className="text-emerald-rich dark:text-luxury-cream font-bold">stayoraenquiry@gmail.com</span>
               </div>
-              {property.agent.phoneNumber && (
-                <div className="flex items-center gap-2">
-                  <span>Phone:</span>
-                  <span className="text-emerald-rich dark:text-luxury-cream font-bold">{property.agent.phoneNumber}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <span>Phone:</span>
+                <span className="text-emerald-rich dark:text-luxury-cream font-bold">+91 8590120810</span>
+              </div>
             </div>
           </div>
         </section>
@@ -263,7 +256,7 @@ export default async function PropertyDetailsPage({
           <h3 className="font-display text-3xl font-light text-emerald-rich dark:text-luxury-cream">
             Similar <span className="font-semibold text-gold">Stays You May Like</span>
           </h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {relatedProperties.map((related) => (
               <Card key={related.slug} className="group h-[30rem] flex flex-col justify-between">
