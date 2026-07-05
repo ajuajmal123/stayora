@@ -51,18 +51,14 @@ export async function POST(req: NextRequest) {
       throw new NotFoundError("Luxury property not found");
     }
 
-    if (guestsCount > property.maxGuests) {
-      throw new ValidationError(`This property only accommodates up to ${property.maxGuests} guests`);
-    }
-
-    // 2. Availability Check: Date overlaps are permitted for Stayora bookings
-
     // 3. Calculate Pricing
     const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
     const nights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-    const baseTotal = nights * property.pricePerNight;
     
-    // In India/UPI context, we can assume a conversion or map pricing (we'll keep direct amount for display)
+    // Each property capacity is for 1 room. Guests exceeding maxGuests are placed in additional rooms.
+    const maxG = property.maxGuests > 0 ? property.maxGuests : 1;
+    const rooms = Math.ceil(guestsCount / maxG);
+    const baseTotal = nights * property.pricePerNight * rooms;
     const totalPrice = baseTotal;
 
     // 4. Create the booking

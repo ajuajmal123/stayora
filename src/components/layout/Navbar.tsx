@@ -98,7 +98,7 @@ export const Navbar: React.FC = () => {
 
         {/* Desktop Auth Controls */}
         <div className="hidden md:flex items-center gap-4 min-w-[80px] justify-end">
-          {isAuthenticated && user ? (
+          {isAuthenticated && user && user.role !== "admin" ? (
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -121,7 +121,7 @@ export const Navbar: React.FC = () => {
                     {user.name}
                   </p>
                   <span className="text-[9px] uppercase tracking-widest text-gold font-medium">
-                    {user.role === "admin" ? "Admin" : "Traveler"}
+                    {(user.role as any) === "admin" ? "Admin" : "Traveler"}
                   </span>
                 </div>
               </button>
@@ -141,11 +141,11 @@ export const Navbar: React.FC = () => {
                       className="absolute right-0 mt-3 w-56 rounded-sm bg-emerald-deep border border-gold/20 shadow-xl py-2 z-10 font-sans"
                     >
                       <div className="px-4 py-2 border-b border-gold/10">
-                        <p className="text-xs text-luxury-cream/60 font-medium">Signed in as {user.role === "admin" ? "Admin" : "Traveler"}</p>
+                        <p className="text-xs text-luxury-cream/60 font-medium">Signed in as {(user.role as any) === "admin" ? "Admin" : "Traveler"}</p>
                         <p className="text-sm font-semibold text-luxury-cream truncate">{user.email}</p>
                       </div>
 
-                      {user.role === "admin" && (
+                      {(user.role as any) === "admin" && (
                         <Link
                           href="/admin"
                           className="flex items-center gap-3 px-4 py-2 text-sm text-luxury-cream/80 hover:bg-emerald-accent hover:text-gold transition-colors"
@@ -197,7 +197,7 @@ export const Navbar: React.FC = () => {
                 </Link>
               ))}
 
-              {isAuthenticated && user ? (
+              {isAuthenticated && user && user.role !== "admin" ? (
                 <>
                   <hr className="border-gold/10 my-1" />
                   <div className="flex flex-col gap-4">
@@ -216,11 +216,11 @@ export const Navbar: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-luxury-cream uppercase">{user.name}</p>
-                        <span className="text-[10px] text-gold uppercase tracking-wider">{user.role === "admin" ? "Admin" : "Traveler"}</span>
+                        <span className="text-[10px] text-gold uppercase tracking-wider">{(user.role as any) === "admin" ? "Admin" : "Traveler"}</span>
                       </div>
                     </div>
 
-                    {user.role === "admin" && (
+                    {(user.role as any) === "admin" && (
                       <Link href="/admin" className="text-xs uppercase tracking-wider font-semibold text-luxury-cream/80 hover:text-gold">
                         Admin Console
                       </Link>

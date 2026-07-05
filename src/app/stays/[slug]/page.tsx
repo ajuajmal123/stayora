@@ -87,10 +87,10 @@ export default async function PropertyDetailsPage({
     _id: doc._id.toString(),
     rating: doc.rating,
     comment: doc.comment,
-    createdAt: doc.createdAt.toISOString(),
+    createdAt: doc.createdAt ? doc.createdAt.toISOString() : new Date().toISOString(),
     user: {
-      name: doc.user.name,
-      avatar: doc.user.avatar,
+      name: doc.user?.name || "Guest Traveler",
+      avatar: doc.user?.avatar || "",
     },
   }));
 

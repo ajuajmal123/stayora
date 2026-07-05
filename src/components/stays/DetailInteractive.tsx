@@ -112,9 +112,11 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
   const nights = checkIn && checkOut
     ? Math.max(1, Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
-  const baseTotal = nights * pricePerNight;
-  const serviceFee = nights * 120; // Luxury service fee
-  const totalCost = baseTotal + serviceFee;
+  const maxG = maxGuests > 0 ? maxGuests : 1;
+  const rooms = Math.ceil(guestsCount / maxG);
+  const baseTotal = nights * pricePerNight * rooms;
+  const serviceFee = 0; // Service charge 0 for all
+  const totalCost = baseTotal;
 
   // 3. Reviews management state
   const [reviews] = useState<ReviewPayload[]>(initialReviews);
@@ -298,17 +300,16 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
             {/* Guests selection */}
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[10px] uppercase font-bold tracking-wider text-gold-dark">Travelers</label>
-              <select
+              <input
+                type="number"
+                min="1"
                 value={guestsCount}
-                onChange={(e) => setGuestsCount(parseInt(e.target.value))}
-                className="h-10 rounded-sm border border-emerald-rich/10 bg-transparent px-3 text-xs focus:ring-1 focus:ring-gold text-emerald-rich dark:text-luxury-cream"
-              >
-                {Array.from({ length: 30 }).map((_, idx) => (
-                  <option key={idx + 1} value={idx + 1} className="dark:bg-emerald-deep">
-                    {idx + 1} Guest{idx > 0 ? "s" : ""}
-                  </option>
-                ))}
-              </select>
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  setGuestsCount(isNaN(val) || val < 1 ? 1 : val);
+                }}
+                className="h-10 rounded-sm border border-emerald-rich/10 bg-transparent px-3 text-xs focus:ring-1 focus:ring-gold text-emerald-rich dark:text-luxury-cream outline-none focus:border-gold"
+              />
             </div>
           </div>
 
@@ -365,7 +366,10 @@ export const DetailInteractive: React.FC<DetailInteractiveProps> = ({
           {nights > 0 && (
             <div className="flex flex-col gap-3 border-t border-emerald-rich/5 pt-4 text-xs font-medium text-emerald-rich/80 dark:text-luxury-cream/80">
               <div className="flex items-center justify-between">
-                <span>{formatCurrency(pricePerNight)} x {nights} night{nights > 1 ? "s" : ""}</span>
+                <span>
+                  {formatCurrency(pricePerNight)} x {nights} night{nights > 1 ? "s" : ""}
+                  {rooms > 1 ? ` x ${rooms} rooms` : ""}
+                </span>
                 <span>{formatCurrency(baseTotal)}</span>
               </div>
               <div className="flex items-center justify-between">
