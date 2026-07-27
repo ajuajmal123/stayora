@@ -729,12 +729,13 @@ export async function sendBookingConfirmationEmail(
 
   try {
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
+      service: "gmail",
       auth: {
         user: emailUser,
         pass: emailPass,
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
 
