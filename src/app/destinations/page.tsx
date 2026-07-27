@@ -104,14 +104,14 @@ export default async function DestinationsPage() {
                     </span>
                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
                       {dest.popularSpots.map((spot: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-1.5 shrink-0 bg-emerald-rich/5 dark:bg-emerald-deep/40 px-2 py-1 border border-gold/10 rounded-sm text-[10px]" title={`Activities: ${spot.activities.join(', ')}`}>
+                        <div key={idx} className="flex items-center gap-1.5 shrink-0 bg-emerald-rich/5 dark:bg-emerald-deep/40 px-2 py-1 border border-gold/10 rounded-sm text-[10px]" title={`Activities: ${spot.activities?.join(', ') || ''}`}>
                           {spot.image && (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={spot.image} alt={spot.name} className="h-5 w-8 object-cover rounded-xs shrink-0" />
                           )}
                           <div className="leading-none text-left">
                             <span className="font-bold block text-[10px] text-emerald-rich dark:text-gold-subtle">{spot.name}</span>
-                            <span className="text-[8px] text-muted-foreground">{spot.activities.slice(0, 2).join(', ')}</span>
+                            <span className="text-[8px] text-muted-foreground">{spot.activities?.slice(0, 2).join(', ') || ''}</span>
                           </div>
                         </div>
                       ))}
