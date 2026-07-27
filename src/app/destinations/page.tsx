@@ -64,70 +64,84 @@ export default async function DestinationsPage() {
       <section className="flex-1 max-w-7xl mx-auto px-6 py-20 w-full flex flex-col gap-12 text-left">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {destinationsWithCounts.map((dest) => (
-            <Card key={dest.slug} className="group flex flex-col h-[30rem] relative overflow-hidden justify-between">
-              {/* Image Container */}
-              <div className="h-56 overflow-hidden relative shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={dest.image}
-                  alt={dest.name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 bg-emerald-deep/80 backdrop-blur-md px-3 py-1 border border-gold/20 rounded-sm">
-                  <span className="text-[10px] font-bold text-gold tracking-widest uppercase">
-                    {dest.propertiesCount} {dest.propertiesCount === 1 ? "Stay" : "Stays"}
-                  </span>
-                </div>
-              </div>
-
-              <CardHeader className="flex-1 p-6 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-2xl font-semibold hover:text-gold transition-colors">
-                    {dest.name}
-                  </CardTitle>
-                  {dest.isFeatured && (
-                    <span className="flex items-center gap-1 text-[9px] uppercase tracking-wider bg-gold/10 text-gold px-2 py-0.5 border border-gold/20 rounded-sm font-bold">
-                      <Sparkles className="h-3 w-3" /> Featured
+            <Link
+              key={dest.slug}
+              href={`/stays?destination=${encodeURIComponent(dest.name)}`}
+              className="group flex flex-col h-full"
+            >
+              <Card className="flex flex-col w-full h-full relative overflow-hidden justify-between transition-all duration-500 hover:shadow-xl hover:border-gold/50 hover:-translate-y-1">
+                {/* Image Container */}
+                <div className="h-56 overflow-hidden relative shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={dest.image}
+                    alt={dest.name}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                  <div className="absolute bottom-4 left-4 bg-emerald-deep/80 backdrop-blur-md px-3.5 py-1.5 border border-gold/30 rounded-full">
+                    <span className="text-[10px] font-bold text-gold tracking-widest uppercase">
+                      {dest.propertiesCount} {dest.propertiesCount === 1 ? "Stay" : "Stays"}
                     </span>
-                  )}
-                </div>
-                <CardDescription className="line-clamp-2 text-xs leading-relaxed mt-1">
-                  {dest.description}
-                </CardDescription>
-
-                {/* Popular Spots horizontal thumbnails row */}
-                {dest.popularSpots && dest.popularSpots.length > 0 && (
-                  <div className="flex flex-col gap-1.5 mt-2 border-t border-gold/10 pt-2 text-left">
-                    <span className="text-[10px] font-bold text-gold uppercase tracking-wider">
-                      Popular Spots & Activities:
-                    </span>
-                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                      {dest.popularSpots.map((spot: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-1.5 shrink-0 bg-emerald-rich/5 dark:bg-emerald-deep/40 px-2 py-1 border border-gold/10 rounded-sm text-[10px]" title={`Activities: ${spot.activities?.join(', ') || ''}`}>
-                          {spot.image && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={spot.image} alt={spot.name} className="h-5 w-8 object-cover rounded-xs shrink-0" />
-                          )}
-                          <div className="leading-none text-left">
-                            <span className="font-bold block text-[10px] text-emerald-rich dark:text-gold-subtle">{spot.name}</span>
-                            <span className="text-[8px] text-muted-foreground">{spot.activities?.slice(0, 2).join(', ') || ''}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                )}
-              </CardHeader>
+                </div>
 
-              <CardContent className="px-6 pb-6 pt-0 shrink-0">
-                <Link href={`/stays?destination=${encodeURIComponent(dest.name)}`} className="w-full">
-                  <Button variant="outline" size="sm" className="w-full text-xs flex items-center justify-center gap-2 group-hover:bg-gold group-hover:text-emerald-deep group-hover:border-gold">
+                <CardHeader className="flex-1 p-6 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-xl sm:text-2xl font-semibold group-hover:text-gold transition-colors duration-300 font-display">
+                      {dest.name}
+                    </CardTitle>
+                    {dest.isFeatured && (
+                      <span className="flex items-center gap-1 shrink-0 text-[9px] uppercase tracking-wider bg-gold-dark/10 text-gold-dark dark:bg-gold/10 dark:text-gold px-2 py-1 border border-gold-dark/20 dark:border-gold/20 rounded-full font-bold">
+                        <Sparkles className="h-3 w-3" /> Featured
+                      </span>
+                    )}
+                  </div>
+                  <CardDescription className="line-clamp-3 text-[13px] text-emerald-rich/70 dark:text-luxury-cream/70 leading-relaxed font-light mt-1">
+                    {dest.description}
+                  </CardDescription>
+
+                  {/* Popular Spots horizontal thumbnail badges wrapper */}
+                  {dest.popularSpots && dest.popularSpots.length > 0 && (
+                    <div className="flex flex-col gap-2 mt-2 border-t border-gold/10 pt-3 text-left">
+                      <span className="text-[10px] font-bold text-gold-dark dark:text-gold uppercase tracking-wider">
+                        Popular Spots & Excursions:
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {dest.popularSpots.slice(0, 3).map((spot: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-1.5 bg-emerald-rich/5 dark:bg-emerald-deep/40 px-2.5 py-1 border border-gold/15 rounded-full text-[11px] text-emerald-rich dark:text-luxury-cream/90"
+                            title={`Activities: ${spot.activities?.join(', ') || 'Various activities'}`}
+                          >
+                            {spot.image && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={spot.image}
+                                alt={spot.name}
+                                className="h-4 w-4 object-cover rounded-full shrink-0"
+                              />
+                            )}
+                            <span className="font-semibold text-[10px]">{spot.name}</span>
+                          </div>
+                        ))}
+                        {dest.popularSpots.length > 3 && (
+                          <span className="text-[10px] font-semibold text-muted-foreground self-center px-1">
+                            +{dest.popularSpots.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardHeader>
+
+                <CardContent className="px-6 pb-6 pt-0 shrink-0">
+                  <Button variant="outline" size="sm" className="w-full text-xs flex items-center justify-center gap-2 group-hover:bg-gold group-hover:text-emerald-deep group-hover:border-gold transition-all duration-300">
                     Explore Stays <ArrowIcon />
                   </Button>
-                </Link>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </section>
