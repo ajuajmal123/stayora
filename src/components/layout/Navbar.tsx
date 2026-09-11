@@ -72,6 +72,9 @@ export const Navbar: React.FC = () => {
         <Link href="/" className="flex items-center gap-2.5 group">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/image.png" alt="Stayora Logo" className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-102" />
+          <span className="text-xs tracking-wider uppercase text-gold">
+            Stayora
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
